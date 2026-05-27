@@ -22,6 +22,12 @@ export const config = {
   cacheTtlMs: parseInt(process.env.CACHE_TTL_MS || "600000", 10),
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || "120", 10),
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "60000", 10),
+  meta: {
+    apiVersion: process.env.META_API_VERSION || "v20.0",
+    accessToken: process.env.META_ACCESS_TOKEN || null,
+    adAccountId: process.env.META_AD_ACCOUNT_ID || null,
+    insightsLookbackDays: parseInt(process.env.META_INSIGHTS_LOOKBACK_DAYS || "30", 10),
+  },
 };
 
 export const tbl = (name) => "`" + config.project + "." + config.dataset + "." + name + "`";
