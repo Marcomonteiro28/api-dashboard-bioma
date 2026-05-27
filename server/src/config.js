@@ -27,6 +27,7 @@ export const config = {
     accessToken: process.env.META_ACCESS_TOKEN || null,
     adAccountId: process.env.META_AD_ACCOUNT_ID || null,
     insightsLookbackDays: parseInt(process.env.META_INSIGHTS_LOOKBACK_DAYS || "30", 10),
+    dataset: process.env.META_BQ_DATASET || process.env.BQ_DATASET || "crm_marts",
   },
 };
 

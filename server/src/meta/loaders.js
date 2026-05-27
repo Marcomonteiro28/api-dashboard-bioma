@@ -11,7 +11,7 @@ import {
 } from "./schemas.js";
 
 const bq = new BigQuery({ projectId: config.project });
-const dataset = bq.dataset(config.dataset);
+const dataset = bq.dataset(config.meta.dataset);
 
 const toFloat = (v) => (v == null || v === "" ? null : Number(v) / 1);
 const toBudget = (v) => (v == null ? null : Number(v) / 100);
@@ -40,7 +40,7 @@ async function replaceAll(tableName, rows) {
   await ensureTable(tableName);
   const table = dataset.table(tableName);
   await bq.query({
-    query: `DELETE FROM \`${config.project}.${config.dataset}.${tableName}\` WHERE TRUE`,
+    query: `DELETE FROM \`${config.project}.${config.meta.dataset}.${tableName}\` WHERE TRUE`,
     location: config.location,
   });
   if (rows.length === 0) return 0;
@@ -56,7 +56,7 @@ async function upsertInsights(rows) {
   const since = rows.reduce((min, r) => (r.date_start < min ? r.date_start : min), rows[0].date_start);
   const until = rows.reduce((max, r) => (r.date_start > max ? r.date_start : max), rows[0].date_start);
   await bq.query({
-    query: `DELETE FROM \`${config.project}.${config.dataset}.${tableName}\` WHERE date_start BETWEEN @since AND @until`,
+    query: `DELETE FROM \`${config.project}.${config.meta.dataset}.${tableName}\` WHERE date_start BETWEEN @since AND @until`,
     params: { since, until },
     location: config.location,
   });
