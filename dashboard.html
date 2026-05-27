@@ -40,15 +40,46 @@
   .container { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
 
   header { margin-bottom: 28px; }
+  .brand-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0 18px;
+  }
+  .brand-bar img.brand-logo { height: 38px; width: auto; }
+  .brand-bar img.brand-mark { height: 34px; width: auto; opacity: 0.45; }
+
+  .hero {
+    position: relative;
+    height: 200px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(115deg, rgba(41, 35, 33, 0.82) 10%, rgba(128, 93, 71, 0.55) 55%, rgba(211, 96, 30, 0.35) 100%), url('assets/hero-apinajes.jpg') center 65% / cover no-repeat;
+    box-shadow: 0 8px 24px rgba(41, 35, 33, 0.08);
+  }
+  .hero-content {
+    position: absolute;
+    inset: auto 28px 24px 28px;
+    color: #FFFFFF;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent-soft);
+    margin: 0 0 8px 0;
+  }
   h1 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: 28px;
+    font-size: 34px;
     font-weight: 700;
-    letter-spacing: -0.5px;
-    color: var(--text);
+    letter-spacing: -1px;
+    color: #FFFFFF;
+    line-height: 1.1;
   }
-  .subtitle { font-size: 13px; color: var(--text-soft); margin-top: 6px; }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 10px; max-width: 600px; }
 
   .filters {
     background: var(--card);
@@ -411,8 +442,17 @@
 
 <div class="container">
   <header>
-    <h1>Bioma · Performance do Funil</h1>
-    <p class="subtitle">ActiveCampaign · pipeline pré-vendas + vendas · dados ao vivo via API</p>
+    <div class="brand-bar">
+      <img src="assets/logo-casa-vertical.png" alt="Casa Vertical" class="brand-logo" />
+      <img src="assets/mark-vertical.svg" alt="" class="brand-mark" aria-hidden="true" />
+    </div>
+    <div class="hero">
+      <div class="hero-content">
+        <p class="hero-eyebrow">Bioma · Casa Vertical</p>
+        <h1>Performance do Funil</h1>
+        <p class="subtitle">ActiveCampaign · pipeline pré-vendas + vendas · dados ao vivo via API</p>
+      </div>
+    </div>
   </header>
 
   <div class="filters" id="filters" style="display:none;">
