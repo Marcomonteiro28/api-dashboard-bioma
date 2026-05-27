@@ -76,6 +76,82 @@ export const VIEWS = {
     WHERE name IS NOT NULL
   `,
 
+  vw_ac_deals_enriched: `
+    WITH cf_joined AS (
+      SELECT
+        cf.deal_id,
+        m.field_label,
+        cf.field_value
+      FROM ${tableRef("ac_deal_cf_data")} cf
+      JOIN ${tableRef("ac_deal_cf_meta")} m ON m.id = cf.custom_field_id
+    ),
+    cf_pivot AS (
+      SELECT
+        deal_id,
+        MAX(IF(field_label = 'Empreendimento', field_value, NULL)) AS empreendimento,
+        MAX(IF(field_label = 'Linha de Empreendimento', field_value, NULL)) AS linha_empreendimento,
+        MAX(IF(field_label = 'Campanha do deal', field_value, NULL)) AS campanha_deal,
+        MAX(IF(field_label = 'Criativo que gerou o deal', field_value, NULL)) AS criativo_deal,
+        MAX(IF(field_label = 'Primeira origem do deal', field_value, NULL)) AS primeira_origem,
+        MAX(IF(field_label = 'Primeiro criativo do deal', field_value, NULL)) AS primeiro_criativo,
+        MAX(IF(field_label = 'Origem', field_value, NULL)) AS origem,
+        MAX(IF(field_label = 'Sub Origem', field_value, NULL)) AS sub_origem,
+        MAX(IF(field_label = 'Origem do deal', field_value, NULL)) AS origem_deal,
+        MAX(IF(field_label = 'Tipo de trafego do deal', field_value, NULL)) AS tipo_trafego,
+        MAX(IF(field_label = 'Pagina de conversao', field_value, NULL)) AS pagina_conversao,
+        MAX(IF(field_label = 'Google Analytics Client ID do deal', field_value, NULL)) AS ga_client_id,
+        MAX(IF(field_label = 'deal_first_utm_campaign', field_value, NULL)) AS deal_first_utm_campaign,
+        MAX(IF(field_label = 'lt_utm_source', field_value, NULL)) AS lt_utm_source,
+        MAX(IF(field_label = 'lt_utm_medium', field_value, NULL)) AS lt_utm_medium,
+        MAX(IF(field_label = 'lt_utm_campaign', field_value, NULL)) AS lt_utm_campaign,
+        MAX(IF(field_label = 'lt_utm_content', field_value, NULL)) AS lt_utm_content,
+        MAX(IF(field_label = 'lt_utm_term', field_value, NULL)) AS lt_utm_term,
+        MAX(IF(field_label = 'Origem Deal - Campanha', field_value, NULL)) AS origem_deal_campanha,
+        MAX(IF(field_label = 'dt_entrada_entrada', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_entrada_cf,
+        MAX(IF(field_label = 'dt_entrada_qualificados', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_qualificado,
+        MAX(IF(field_label = 'dt_entrada_visita_agendada', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_visita_agendada,
+        MAX(IF(field_label = 'dt_entrada_visita_realizada', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_visita_realizada,
+        MAX(IF(field_label = 'dt_fechamento', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_fechamento
+      FROM cf_joined
+      GROUP BY deal_id
+    )
+    SELECT
+      d.id AS deal_id,
+      d.title,
+      d.value AS valor,
+      d.status,
+      d.contact_id,
+      d.stage_id,
+      d.pipeline_id,
+      d.created_timestamp AS dt_entrada,
+      d.updated_timestamp AS dt_atualizacao,
+      cf.empreendimento,
+      cf.linha_empreendimento,
+      cf.campanha_deal,
+      cf.criativo_deal,
+      cf.primeira_origem,
+      cf.primeiro_criativo,
+      cf.origem,
+      cf.sub_origem,
+      cf.origem_deal,
+      cf.tipo_trafego,
+      cf.pagina_conversao,
+      cf.ga_client_id,
+      cf.deal_first_utm_campaign,
+      cf.lt_utm_source,
+      cf.lt_utm_medium,
+      cf.lt_utm_campaign,
+      cf.lt_utm_content,
+      cf.lt_utm_term,
+      cf.origem_deal_campanha,
+      cf.dt_qualificado,
+      cf.dt_visita_agendada,
+      cf.dt_visita_realizada,
+      cf.dt_fechamento
+    FROM ${tableRef("ac_deals")} d
+    LEFT JOIN cf_pivot cf ON cf.deal_id = d.id
+  `,
+
   vw_lead_creative: `
     SELECT
       d.deal_id,
@@ -99,7 +175,7 @@ export const VIEWS = {
         WHEN c.id IS NOT NULL THEN 'CAMPAIGN_NAME'
         ELSE 'NO_MATCH'
       END AS match_type
-    FROM ${tableRef("crm_deals_csv")} d
+    FROM ${viewName("vw_ac_deals_enriched")} d
     LEFT JOIN ${viewName("vw_meta_ads_norm")} a
       ON a.ad_name_norm = ${NORM_FN("d.criativo_deal")}
     LEFT JOIN ${tableRef("meta_campaigns")} c
@@ -119,8 +195,8 @@ export const VIEWS = {
       COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)) AS qualificados,
       COUNT(DISTINCT IF(dt_visita_agendada IS NOT NULL, deal_id, NULL)) AS agendamentos,
       COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)) AS visitas,
-      COUNT(DISTINCT IF(LOWER(status) LIKE '%ganh%', deal_id, NULL)) AS ganhos,
-      COUNT(DISTINCT IF(LOWER(status) LIKE '%perd%', deal_id, NULL)) AS perdidos
+      COUNT(DISTINCT IF(status = 1, deal_id, NULL)) AS ganhos,
+      COUNT(DISTINCT IF(status = 2, deal_id, NULL)) AS perdidos
     FROM ${viewName("vw_lead_creative")}
     GROUP BY criativo, empreendimento
   `,

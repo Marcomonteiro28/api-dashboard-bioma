@@ -29,6 +29,13 @@ export const config = {
     insightsLookbackDays: parseInt(process.env.META_INSIGHTS_LOOKBACK_DAYS || "30", 10),
     dataset: process.env.META_BQ_DATASET || process.env.BQ_DATASET || "crm_marts",
   },
+  ac: {
+    apiUrl: (process.env.AC_API_URL || "").replace(/\/+$/, ""),
+    token: process.env.AC_API_TOKEN || null,
+    dataset: process.env.AC_BQ_DATASET || process.env.META_BQ_DATASET || "bioma_meta",
+    pageLimit: parseInt(process.env.AC_PAGE_LIMIT || "100", 10),
+    rateLimitMs: parseInt(process.env.AC_RATE_LIMIT_MS || "250", 10),
+  },
 };
 
 export const tbl = (name) => "`" + config.project + "." + config.dataset + "." + name + "`";
