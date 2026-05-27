@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bioma · Funil CRM</title>
+<style>
+  :root {
+    --bg: #f5f7f5;
+    --card: #ffffff;
+    --border: #e5ebe5;
+    --text: #1a2e1a;
+    --text-soft: #5b6e5b;
+    --text-muted: #94a394;
+    --primary: #2d5016;
+    --primary-light: #4a7c2a;
+    --primary-pale: #e8f0e1;
+    --accent: #1e4d2b;
+    --warn-bg: #fef7e0;
+    --warn-border: #f4d35e;
+    --warn-text: #6b5b1a;
+    --danger: #c44536;
+    --success: #2d5016;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+  header { margin-bottom: 24px; }
+  h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--text); }
+  .subtitle { font-size: 13px; color: var(--text-soft); margin-top: 4px; }
+
+  .filters {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  }
+  .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .filter-label { font-size: 13px; font-weight: 600; color: var(--text-soft); }
+  .btn-range, .btn-emp, .btn-status {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text-soft);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-range:hover, .btn-emp:hover, .btn-status:hover { border-color: var(--primary-light); }
+  .btn-range.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn-emp { border-radius: 999px; padding: 4px 12px; font-size: 12px; }
+  .btn-emp.active { background: var(--primary-pale); border-color: var(--primary-light); color: var(--primary); }
+  .btn-status { padding: 4px 12px; font-size: 12px; }
+  .btn-status.active[data-status="0"] { background: #e8f0e1; border-color: var(--primary); color: var(--primary); }
+  .btn-status.active[data-status="1"] { background: #c8e6c9; border-color: #1b5e20; color: #1b5e20; }
+  .btn-status.active[data-status="2"] { background: #ffe0e0; border-color: var(--danger); color: var(--danger); }
+  .divider { width: 1px; height: 24px; background: var(--border); }
+
+  .date-range-custom { display: flex; align-items: center; gap: 6px; }
+  .date-range-custom input[type="date"] {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--card);
+    font-family: inherit;
+  }
+  .date-range-custom input[type="date"]:focus { outline: none; border-color: var(--primary-light); }
+  .btn-apply {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-apply:hover { background: var(--accent); }
+
+  .btn-view-data {
+    margin-left: auto;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-view-data:hover { background: var(--accent); }
+
+  .loading, .error {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-soft);
+    font-size: 14px;
+  }
+  .error { color: var(--danger); }
+  .error code { background: #ffe5e0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .kpi-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 2px 8px rgba(45, 80, 22, 0.08);
+    transform: translateY(-1px);
+  }
+  .kpi-card::after {
+    content: "↗";
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    color: var(--text-muted);
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .kpi-card:hover::after { opacity: 1; color: var(--primary); }
+  .kpi-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+  .kpi-value { font-size: 22px; font-weight: 700; color: var(--text); }
+  .kpi-delta { font-size: 11px; margin-top: 6px; }
+  .kpi-delta.up { color: var(--success); }
+  .kpi-delta.down { color: var(--danger); }
+  .kpi-delta.neutral { color: var(--text-muted); }
+
+  .row { display: grid; gap: 16px; margin-bottom: 16px; }
+  .row.two-col { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) { .row.two-col { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin: 0 0 4px 0; }
+  .card-subtitle { font-size: 12px; color: var(--text-muted); margin: 0 0 16px 0; }
+
+  .funnel-row { margin-bottom: 14px; }
+  .funnel-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-soft); margin-bottom: 6px; }
+  .funnel-head .stage-name { font-weight: 600; color: var(--text); }
+  .funnel-bar-bg { background: #eef3ec; height: 26px; border-radius: 6px; overflow: hidden; }
+  .funnel-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light)); border-radius: 6px; transition: width 0.3s; }
+  .funnel-conv { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .status-row { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 8px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.pre { background: var(--primary-light); }
+  .status-dot.vendas { background: var(--accent); }
+  .status-name { width: 160px; color: var(--text-soft); }
+  .status-bar-bg { flex: 1; height: 8px; background: #eef3ec; border-radius: 4px; }
+  .status-bar { height: 100%; border-radius: 4px; }
+  .status-bar.pre { background: var(--primary-light); }
+  .status-bar.vendas { background: var(--accent); }
+  .status-count { width: 50px; text-align: right; font-weight: 600; color: var(--text); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 10px 12px 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th.num { text-align: right; padding: 10px 12px; }
+  tbody td { padding: 12px 12px 12px 0; border-bottom: 1px solid #f0f4ee; color: var(--text-soft); }
+  tbody td.emp { font-weight: 600; color: var(--text); }
+  tbody td.num { text-align: right; padding: 12px; }
+  tbody td.num.highlight { color: var(--text); font-weight: 600; }
+  tbody td.num.clickable { cursor: pointer; color: var(--primary); text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.15s; }
+  tbody td.num.clickable:hover { text-decoration-color: var(--primary); background: var(--primary-pale); }
+  tbody tr:hover { background: #f9fcf7; }
+
+  .diag {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .diag-title { font-size: 14px; font-weight: 700; color: var(--warn-text); margin-bottom: 10px; }
+  .diag-list { margin: 0; padding-left: 20px; }
+  .diag-list li { font-size: 13px; color: var(--warn-text); margin-bottom: 6px; line-height: 1.5; }
+  .diag-list li strong { color: #4a3e10; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(26, 46, 26, 0.55);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal {
+    background: var(--card);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 1400px;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title { font-size: 16px; font-weight: 700; color: var(--text); margin: 0; }
+  .modal-subtitle { font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0; }
+  .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 6px;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { overflow: auto; padding: 0; flex: 1; }
+  .modal-body table { font-size: 12px; }
+  .modal-body thead th { position: sticky; top: 0; background: var(--card); z-index: 1; padding: 10px 12px; white-space: nowrap; }
+  .modal-body tbody td { padding: 10px 12px; white-space: nowrap; }
+  .modal-loading { padding: 60px; text-align: center; color: var(--text-soft); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-pre { background: var(--primary-pale); color: var(--primary); }
+  .badge-vendas { background: #d4e8d4; color: var(--accent); }
+  .badge-aberto { background: #e8f0e1; color: var(--primary); }
+  .badge-ganho { background: #c8e6c9; color: #1b5e20; }
+  .badge-perdido { background: #ffe0e0; color: var(--danger); }
+
+  footer { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); }
+  footer code { background: #eef3ec; padding: 2px 6px; border-radius: 4px; color: var(--text-soft); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Bioma · Performance do Funil</h1>
+    <p class="subtitle">ActiveCampaign · pipeline pré-vendas + vendas · dados ao vivo via API</p>
+  </header>
+
+  <div class="filters" id="filters" style="display:none;">
+    <div class="filter-group">
+      <span class="filter-label">Período:</span>
+      <button class="btn-range" data-range="7d">7 dias</button>
+      <button class="btn-range active" data-range="30d">30 dias</button>
+      <button class="btn-range" data-range="90d">90 dias</button>
+      <button class="btn-range" data-range="365d">12 meses</button>
+    </div>
+    <div class="divider"></div>
+    <div class="filter-group date-range-custom">
+      <span class="filter-label">Custom:</span>
+      <input type="date" id="date-from" />
+      <span style="color:var(--text-muted); font-size:12px;">até</span>
+      <input type="date" id="date-to" />
+      <button class="btn-apply" id="btn-apply-custom">Aplicar</button>
+    </div>
+    <div class="divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Status:</span>
+      <button class="btn-status active" data-status="0">Aberto</button>
+      <button class="btn-status active" data-status="1">Ganho</button>
+      <button class="btn-status active" data-status="2">Perdido</button>
+    </div>
+    <div class="divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">Empreendimentos:</span>
+      <div id="emp-buttons"></div>
+    </div>
+    <button class="btn-view-data" id="btn-view-data">📋 Ver dados filtrados</button>
+  </div>
+
+  <div id="content">
+    <div class="loading" id="loading">Carregando dados do BigQuery...</div>
+  </div>
+
+  <footer>
+    Dashboard local · dados via <code>http://localhost:3001</code> · ambiente de validação
+  </footer>
+</div>
+
+<script>
+// ====================================================================
+// CONFIG
+// ====================================================================
+const API_BASE = "http://localhost:3001";
+
+const fmtNum = (v) => (v == null ? "—" : Math.round(v).toLocaleString("pt-BR"));
+const fmtBRL = (v) => v == null ? "—" : "R$ " + Math.round(v).toLocaleString("pt-BR");
+const fmtPct = (v) => v == null ? "—" : v.toLocaleString("pt-BR", {maximumFractionDigits: 1}) + "%";
+
+// State
+const state = {
+  range: "30d",
+  customFrom: null,
+  customTo: null,
+  selectedEmps: [],
+  allEmps: [],
+  selectedStatus: [0, 1, 2],
+  statusData: [],
+  perfEmpData: [],
+  perfEmpDataPrev: []
+};
+
+// ====================================================================
+// HELPERS
+// ====================================================================
+async function fetchAPI(path) {
+  const r = await fetch(API_BASE + path);
+  if (!r.ok) throw new Error("API retornou " + r.status);
+  return await r.json();
+}
+
+function getRangeDays() {
+  return { "7d": 7, "30d": 30, "90d": 90, "365d": 365 }[state.range] || 30;
+}
+
+function getCurrentRangeDates() {
+  if (state.range === "custom" && state.customFrom && state.customTo) {
+    return { from: state.customFrom, to: state.customTo };
+  }
+  const days = getRangeDays();
+  const today = new Date();
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - days);
+  return {
+    from: cutoff.toISOString().slice(0, 10),
+    to: today.toISOString().slice(0, 10)
+  };
+}
+
+function delta(cur, prev) {
+  if (!prev || prev === 0) return null;
+  return ((cur - prev) / prev * 100);
+}
+
+function buildPorEmp() {
+  return state.perfEmpData.map(e => ({
+    empreendimento: e.empreendimento,
+    leads: Number(e.leads) || 0,
+    contatos_unicos: Number(e.contatos_unicos) || 0,
+    qualificados: Number(e.qualificados) || 0,
+    agendamentos: Number(e.agendamentos) || 0,
+    visitas: Number(e.visitas) || 0,
+    negociacoes: Number(e.negociacoes) || 0,
+    propostas: Number(e.propostas) || 0,
+    ganhos: Number(e.ganhos) || 0,
+    pct_qualif: e.leads ? (Number(e.qualificados) / Number(e.leads) * 100) : 0,
+    pct_qualif_agend: e.qualificados ? (Number(e.agendamentos) / Number(e.qualificados) * 100) : 0,
+    pct_agend_visit: e.agendamentos ? (Number(e.visitas) / Number(e.agendamentos) * 100) : 0,
+    dups: (Number(e.leads) || 0) - (Number(e.contatos_unicos) || 0)
+  })).sort((a, b) => b.leads - a.leads);
+}
+
+function buildDiagnostics(porEmp) {
+  const alerts = [];
+  const empsComLeads = porEmp.filter(e => e.leads >= 30);
+  if (empsComLeads.length === 0) return alerts;
+
+  const avgQualifAgend = empsComLeads.reduce((s, e) => s + e.pct_qualif_agend, 0) / empsComLeads.length;
+  if (avgQualifAgend < 15) {
+    alerts.push("<strong>Gargalo crítico Qualificação → Agendamento:</strong> média da carteira é " + avgQualifAgend.toFixed(1) + "%. Discutir critério de qualificação e cadência de SDR.");
+  }
+
+  const piorVisita = empsComLeads
+    .filter(e => e.agendamentos >= 5)
+    .sort((a, b) => a.pct_agend_visit - b.pct_agend_visit)[0];
+  if (piorVisita && piorVisita.pct_agend_visit < 30) {
+    alerts.push("<strong>" + piorVisita.empreendimento + "</strong>: " + piorVisita.pct_agend_visit.toFixed(0) + "% dos agendamentos viram visita realizada. Taxa de no-show alta — revisar fluxo de confirmação e lembretes.");
+  }
+
+  const melhor = empsComLeads
+    .filter(e => e.qualificados >= 10)
+    .sort((a, b) => b.pct_qualif_agend - a.pct_qualif_agend)[0];
+  if (melhor && melhor.pct_qualif_agend > avgQualifAgend * 1.5) {
+    alerts.push("<strong>" + melhor.empreendimento + "</strong> tem performance acima da carteira: " + melhor.pct_qualif_agend.toFixed(0) + "% de qualif→agend (" + (melhor.pct_qualif_agend / avgQualifAgend).toFixed(1) + "× a média). Vale investigar o que está sendo feito de diferente e replicar.");
+  }
+
+  const sem = porEmp.find(e => e.empreendimento === "Sem Empreendimento");
+  if (sem && sem.leads > 0) {
+    const totalLeads = porEmp.reduce((s, e) => s + e.leads, 0);
+    const pctSem = (sem.leads / totalLeads * 100);
+    if (pctSem > 15) {
+      alerts.push("<strong>Higiene de dados:</strong> " + pctSem.toFixed(0) + "% dos leads no período estão sem empreendimento preenchido (" + sem.leads + " de " + totalLeads + "). Sugere processo automatizado de tagueamento na entrada do lead.");
+    }
+  }
+
+  return alerts;
+}
+
+// ====================================================================
+// FETCH
+// ====================================================================
+function getPreviousRangeDates() {
+  const { from, to } = getCurrentRangeDates();
+  const fromD = new Date(from);
+  const toD = new Date(to);
+  const rangeMs = toD - fromD;
+  const prevTo = new Date(fromD.getTime() - 1);
+  const prevFrom = new Date(prevTo.getTime() - rangeMs);
+  return {
+    from: prevFrom.toISOString().slice(0, 10),
+    to: prevTo.toISOString().slice(0, 10)
+  };
+}
+
+async function fetchPerformanceEmp() {
+  const { from, to } = getCurrentRangeDates();
+  const prev = getPreviousRangeDates();
+  const buildParams = (f, t) => {
+    const p = new URLSearchParams();
+    p.set("from", f);
+    p.set("to", t);
+    if (state.selectedEmps.length < state.allEmps.length) {
+      p.set("empreendimentos", state.selectedEmps.join(","));
+    }
+    if (state.selectedStatus.length < 3) {
+      p.set("status", state.selectedStatus.join(","));
+    }
+    return p;
+  };
+  const [respCur, respPrev] = await Promise.all([
+    fetchAPI("/api/performance-emp?" + buildParams(from, to).toString()),
+    fetchAPI("/api/performance-emp?" + buildParams(prev.from, prev.to).toString())
+  ]);
+  state.perfEmpData = respCur.data;
+  state.perfEmpDataPrev = respPrev.data;
+}
+
+async function loadAll() {
+  try {
+    document.getElementById("loading").textContent = "Buscando empreendimentos...";
+    const empsResp = await fetchAPI("/api/empreendimentos");
+    state.allEmps = empsResp.data;
+    state.selectedEmps = [...state.allEmps];
+
+    document.getElementById("loading").textContent = "Buscando status atual...";
+    const statusResp = await fetchAPI("/api/status-atual");
+    state.statusData = statusResp.data;
+
+    buildEmpButtons();
+    document.getElementById("filters").style.display = "flex";
+    await renderAsync();
+    bindEvents();
+  } catch (err) {
+    console.error(err);
+    document.getElementById("content").innerHTML =
+      '<div class="error">' +
+      '<p><strong>Não foi possível conectar à API.</strong></p>' +
+      '<p>Confirme que o servidor está rodando em <code>' + API_BASE + '</code>.</p>' +
+      '<p>No PowerShell da pasta do projeto, rode <code>npm start</code> e tente de novo.</p>' +
+      '<p style="margin-top:20px; color:#999;">Detalhe técnico: ' + err.message + '</p>' +
+      '</div>';
+  }
+}
+
+// ====================================================================
+// UI BUILDERS
+// ====================================================================
+function buildEmpButtons() {
+  const container = document.getElementById("emp-buttons");
+  container.innerHTML = state.allEmps.map(e =>
+    '<button class="btn-emp active" data-emp="' + e + '">' + e + '</button>'
+  ).join(" ");
+}
+
+function bindEvents() {
+  document.querySelectorAll(".btn-range").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.range = btn.dataset.range;
+      state.customFrom = null;
+      state.customTo = null;
+      document.getElementById("date-from").value = "";
+      document.getElementById("date-to").value = "";
+      renderAsync();
+    });
+  });
+  document.querySelectorAll(".btn-emp").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const emp = btn.dataset.emp;
+      if (state.selectedEmps.includes(emp)) {
+        state.selectedEmps = state.selectedEmps.filter(e => e !== emp);
+        btn.classList.remove("active");
+      } else {
+        state.selectedEmps.push(emp);
+        btn.classList.add("active");
+      }
+      renderAsync();
+    });
+  });
+  document.getElementById("btn-apply-custom").addEventListener("click", () => {
+    const from = document.getElementById("date-from").value;
+    const to = document.getElementById("date-to").value;
+    if (!from || !to) { alert("Selecione data inicial e final."); return; }
+    if (from > to) { alert("Data inicial não pode ser maior que a data final."); return; }
+    state.customFrom = from;
+    state.customTo = to;
+    state.range = "custom";
+    document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
+    renderAsync();
+  });
+
+  document.querySelectorAll(".btn-status").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const status = Number(btn.dataset.status);
+      if (state.selectedStatus.includes(status)) {
+        if (state.selectedStatus.length === 1) {
+          alert("Selecione ao menos um status.");
+          return;
+        }
+        state.selectedStatus = state.selectedStatus.filter(s => s !== status);
+        btn.classList.remove("active");
+      } else {
+        state.selectedStatus.push(status);
+        btn.classList.add("active");
+      }
+      renderAsync();
+    });
+  });
+
+  document.getElementById("btn-view-data").addEventListener("click", () => {
+    openModal({ scope: "filtros" });
+  });
+}
+
+// ====================================================================
+// MODAL
+// ====================================================================
+async function openModal({ scope, empreendimento, estagio }) {
+  const { from, to } = getCurrentRangeDates();
+  const params = new URLSearchParams();
+  params.set("from", from);
+  params.set("to", to);
+  params.set("limit", "2000");
+  if (state.selectedStatus.length < 3) {
+    params.set("status", state.selectedStatus.join(","));
+  }
+
+  let titulo = "";
+  const subtitulo = from + " → " + to;
+
+  if (scope === "filtros") {
+    if (state.selectedEmps.length < state.allEmps.length) {
+      params.set("empreendimentos", state.selectedEmps.join(","));
+    }
+    titulo = "Todos os deals — filtros ativos";
+  } else if (scope === "cell") {
+    params.set("empreendimentos", empreendimento);
+    if (estagio && estagio !== "leads") params.set("estagio", estagio);
+    titulo = empreendimento + " — " + (estagio === "leads" ? "todos os deals" : estagio);
+  } else if (scope === "estagio") {
+    if (state.selectedEmps.length < state.allEmps.length) {
+      params.set("empreendimentos", state.selectedEmps.join(","));
+    }
+    if (estagio && estagio !== "leads") params.set("estagio", estagio);
+    const empsLabel = state.selectedEmps.length < state.allEmps.length
+      ? " (" + state.selectedEmps.length + " empreendimentos)"
+      : "";
+    titulo = (estagio === "leads" ? "Todos os leads" : "Deals em " + estagio) + empsLabel;
+  }
+
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop";
+  backdrop.innerHTML =
+    '<div class="modal">' +
+      '<div class="modal-header">' +
+        '<div>' +
+          '<h3 class="modal-title">' + titulo + '</h3>' +
+          '<p class="modal-subtitle">' + subtitulo + '</p>' +
+        '</div>' +
+        '<button class="modal-close" id="modal-close">×</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        '<div class="modal-loading">Carregando deals do BigQuery...</div>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(backdrop);
+
+  const close = () => backdrop.remove();
+  backdrop.addEventListener("click", (e) => { if (e.target === backdrop) close(); });
+  backdrop.querySelector("#modal-close").addEventListener("click", close);
+
+  try {
+    const resp = await fetchAPI("/api/deals?" + params.toString());
+    const deals = resp.data;
+    const body = backdrop.querySelector(".modal-body");
+    if (deals.length === 0) {
+      body.innerHTML = '<div class="modal-loading">Nenhum deal encontrado nesse recorte.</div>';
+      return;
+    }
+    body.innerHTML = renderDealsTable(deals, resp.meta);
+  } catch (err) {
+    backdrop.querySelector(".modal-body").innerHTML =
+      '<div class="modal-loading" style="color:var(--danger)">Erro ao carregar deals: ' + err.message + '</div>';
+  }
+}
+
+function renderDealsTable(deals, meta) {
+  const statusBadge = (d) => {
+    if (d.deal_status == 1) return '<span class="badge badge-ganho">Ganho</span>';
+    if (d.deal_status == 2) return '<span class="badge badge-perdido">Perdido</span>';
+    return '<span class="badge badge-aberto">Aberto</span>';
+  };
+  const pipelineBadge = (p) => p === "Vendas"
+    ? '<span class="badge badge-vendas">Vendas</span>'
+    : '<span class="badge badge-pre">Pré-vendas</span>';
+  const prioridadeBadge = (p) => {
+    if (!p) return "—";
+    const map = { "Quente": "#c44536", "Morno": "#d9822f", "Frio": "#5b6e5b" };
+    return '<span style="color:' + (map[p] || 'var(--text-soft)') + '; font-weight:600;">' + p + '</span>';
+  };
+
+  const limitWarn = meta.count >= meta.limit
+    ? '<div style="padding:10px 16px; background:var(--warn-bg); border-bottom:1px solid var(--warn-border); font-size:12px; color:var(--warn-text);">⚠️ Resultado limitado a ' + meta.limit + ' deals. Refine o filtro pra ver outros.</div>'
+    : "";
+
+  const meta_info = '<div style="padding:10px 16px; font-size:12px; color:var(--text-muted); background:#f9fcf7; border-bottom:1px solid var(--border);">' + meta.count + ' deals · estágio: ' + meta.estagio + '</div>';
+
+  const rows = deals.map(d => {
+    return '<tr>' +
+      '<td>' + d.deal_id + '</td>' +
+      '<td>' + (d.contact_nome || "—") + '</td>' +
+      '<td>' + (d.contact_email || "—") + '</td>' +
+      '<td>' + (d.contact_phone || "—") + '</td>' +
+      '<td><strong>' + d.empreendimento + '</strong></td>' +
+      '<td>' + (d.metragem_m2 || "—") + '</td>' +
+      '<td>' + prioridadeBadge(d.prioridade) + '</td>' +
+      '<td>' + pipelineBadge(d.pipeline_atual) + '</td>' +
+      '<td>' + (d.stage_titulo_atual || "—") + '</td>' +
+      '<td>' + statusBadge(d) + '</td>' +
+      '<td>' + (d.sdr_responsavel || "—") + '</td>' +
+      '<td class="num">' + (d.valor_deal ? "R$ " + Math.round(d.valor_deal).toLocaleString("pt-BR") : "—") + '</td>' +
+      '<td class="num">' + (d.valor_esperado ? "R$ " + Math.round(d.valor_esperado).toLocaleString("pt-BR") : "—") + '</td>' +
+      '<td>' + (d.dt_entrada || d.deal_created_at || "—") + '</td>' +
+      '<td>' + (d.dt_qualificado || "—") + '</td>' +
+      '<td>' + (d.dt_visita_agendada || "—") + '</td>' +
+      '<td>' + (d.dt_visita_realizada || "—") + '</td>' +
+      '<td>' + (d.dt_negociacao || "—") + '</td>' +
+      '<td>' + (d.dt_proposta || "—") + '</td>' +
+      '<td>' + (d.dt_fechamento || "—") + '</td>' +
+    '</tr>';
+  }).join("");
+
+  return meta_info + limitWarn +
+    '<div style="padding: 0 16px 16px 16px;">' +
+      '<table>' +
+        '<thead><tr>' +
+          '<th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th><th>Empreendimento</th>' +
+          '<th>Metragem</th><th>Prioridade</th><th>Pipeline</th><th>Status atual</th>' +
+          '<th>Deal status</th><th>SDR</th><th class="num">Valor</th><th class="num">Vlr esperado</th>' +
+          '<th>Entrada</th><th>Qualif.</th><th>V. Agend.</th><th>V. Realiz.</th>' +
+          '<th>Negoc.</th><th>Proposta</th><th>Fechamento</th>' +
+        '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+    '</div>';
+}
+
+// ====================================================================
+// RENDER
+// ====================================================================
+async function renderAsync() {
+  document.getElementById("content").innerHTML = '<div class="loading">Atualizando dados...</div>';
+  try {
+    await fetchPerformanceEmp();
+    render();
+  } catch (err) {
+    console.error(err);
+    document.getElementById("content").innerHTML =
+      '<div class="error">Erro ao atualizar: ' + err.message + '</div>';
+  }
+}
+
+function sumEmpData(arr) {
+  return {
+    leads: arr.reduce((s, e) => s + (Number(e.leads) || 0), 0),
+    aguardando_retorno: arr.reduce((s, e) => s + (Number(e.aguardando_retorno) || 0), 0),
+    qualificados: arr.reduce((s, e) => s + (Number(e.qualificados) || 0), 0),
+    agendamentos: arr.reduce((s, e) => s + (Number(e.agendamentos) || 0), 0),
+    transferidos: arr.reduce((s, e) => s + (Number(e.transferidos) || 0), 0),
+    visitas_confirmadas: arr.reduce((s, e) => s + (Number(e.visitas_confirmadas) || 0), 0),
+    visitas: arr.reduce((s, e) => s + (Number(e.visitas) || 0), 0),
+    negociacoes: arr.reduce((s, e) => s + (Number(e.negociacoes) || 0), 0),
+    propostas: arr.reduce((s, e) => s + (Number(e.propostas) || 0), 0),
+    ganhos: arr.reduce((s, e) => s + (Number(e.ganhos) || 0), 0)
+  };
+}
+
+function render() {
+  const cur = sumEmpData(state.perfEmpData);
+  const prev = sumEmpData(state.perfEmpDataPrev);
+  const porEmp = buildPorEmp();
+  const alerts = buildDiagnostics(porEmp);
+
+  const days = getRangeDays();
+  const periodLabel = state.range === "custom"
+    ? state.customFrom + " a " + state.customTo
+    : days + " dias";
+
+  const funilStages = [
+    { name: "Leads (Entrada)",     count: cur.leads,               estagio: "leads" },
+    { name: "Aguardando retorno",  count: cur.aguardando_retorno,  estagio: "aguardando_retorno" },
+    { name: "Qualificados",        count: cur.qualificados,        estagio: "qualificados" },
+    { name: "Visita Agendada",     count: cur.agendamentos,        estagio: "agendamentos" },
+    { name: "Transferido (Vendas)",count: cur.transferidos,        estagio: "transferidos" },
+    { name: "Visita Confirmada",   count: cur.visitas_confirmadas, estagio: "visitas_confirmadas" },
+    { name: "Visita Realizada",    count: cur.visitas,             estagio: "visitas" },
+    { name: "Negociação",          count: cur.negociacoes,         estagio: "negociacoes" },
+    { name: "Proposta",            count: cur.propostas,           estagio: "propostas" }
+  ];
+  const maxLeads = funilStages[0].count || 1;
+
+  const statusFilt = state.statusData;
+  const statusMax = Math.max(1, ...statusFilt.map(s => Number(s.qtd)));
+
+  const kpis = [
+    kpiCardClickable("Leads", fmtNum(cur.leads), delta(cur.leads, prev.leads), "leads"),
+    kpiCardClickable("Qualificados", fmtNum(cur.qualificados), delta(cur.qualificados, prev.qualificados), "qualificados"),
+    kpiCardClickable("Agendamentos", fmtNum(cur.agendamentos), delta(cur.agendamentos, prev.agendamentos), "agendamentos"),
+    kpiCardClickable("Visitas realizadas", fmtNum(cur.visitas), delta(cur.visitas, prev.visitas), "visitas"),
+    kpiCardClickable("Negociações", fmtNum(cur.negociacoes), delta(cur.negociacoes, prev.negociacoes), "negociacoes"),
+    kpiCardClickable("Ganhos", fmtNum(cur.ganhos), delta(cur.ganhos, prev.ganhos), "ganhos")
+  ].join("");
+
+  const diagBlock = alerts.length === 0 ? "" :
+    '<div class="diag">' +
+      '<div class="diag-title">⚠️ Diagnóstico — pontos para conversa com o time</div>' +
+      '<ul class="diag-list">' + alerts.map(a => '<li>' + a + '</li>').join("") + '</ul>' +
+    '</div>';
+
+  const funnelHtml = funilStages.map((s, i) => {
+    const pct = maxLeads ? (s.count / maxLeads * 100) : 0;
+    const prevStage = i > 0 ? funilStages[i - 1].count : null;
+    const conv = prevStage ? (s.count / prevStage * 100) : 100;
+    return '<div class="funnel-row">' +
+      '<div class="funnel-head">' +
+        '<span class="stage-name">' + s.name + '</span>' +
+        '<span class="stage-count">' + fmtNum(s.count) + ' <span style="color:#94a394">(' + fmtPct(pct) + ')</span></span>' +
+      '</div>' +
+      '<div class="funnel-bar-bg"><div class="funnel-bar" style="width:' + Math.max(pct, 0.5) + '%"></div></div>' +
+      (i > 0 ? '<div class="funnel-conv">↓ ' + fmtPct(conv) + ' do estágio anterior</div>' : "") +
+    '</div>';
+  }).join("");
+
+  const statusHtml = statusFilt.length === 0
+    ? '<p class="card-subtitle">Sem dados de status disponíveis.</p>'
+    : statusFilt.map(s => {
+        return '<div class="status-row">' +
+          '<span class="status-dot ' + s.funil + '"></span>' +
+          '<span class="status-name">' + s.status + '</span>' +
+          '<div class="status-bar-bg">' +
+            '<div class="status-bar ' + s.funil + '" style="width:' + (Number(s.qtd) / statusMax * 100) + '%"></div>' +
+          '</div>' +
+          '<span class="status-count">' + fmtNum(Number(s.qtd)) + '</span>' +
+        '</div>';
+      }).join("");
+
+  const tableRows = porEmp.length === 0
+    ? '<tr><td colspan="11" style="text-align:center; padding:20px; color:var(--text-muted)">Sem dados no período selecionado.</td></tr>'
+    : porEmp.map(e => {
+        const dupsTag = e.dups > 0
+          ? ' <span style="font-size:10px; color:var(--danger); margin-left:4px;">(−' + e.dups + ')</span>'
+          : "";
+        const dupsTitle = e.dups > 0 ? e.dups + " deals duplicados (mesmo contato)" : "Sem duplicação";
+        return '<tr>' +
+          '<td class="emp">' + e.empreendimento + '</td>' +
+          '<td class="num clickable" data-emp="' + e.empreendimento + '" data-estagio="leads">' + fmtNum(e.leads) + '</td>' +
+          '<td class="num" title="' + dupsTitle + '">' + fmtNum(e.contatos_unicos) + dupsTag + '</td>' +
+          '<td class="num clickable" data-emp="' + e.empreendimento + '" data-estagio="qualificados">' + fmtNum(e.qualificados) + '</td>' +
+          '<td class="num clickable" data-emp="' + e.empreendimento + '" data-estagio="agendamentos">' + fmtNum(e.agendamentos) + '</td>' +
+          '<td class="num clickable highlight" data-emp="' + e.empreendimento + '" data-estagio="visitas">' + fmtNum(e.visitas) + '</td>' +
+          '<td class="num clickable" data-emp="' + e.empreendimento + '" data-estagio="negociacoes">' + fmtNum(e.negociacoes) + '</td>' +
+          '<td class="num clickable" data-emp="' + e.empreendimento + '" data-estagio="propostas">' + fmtNum(e.propostas) + '</td>' +
+          '<td class="num">' + fmtPct(e.pct_qualif) + '</td>' +
+          '<td class="num">' + fmtPct(e.pct_qualif_agend) + '</td>' +
+          '<td class="num">' + fmtPct(e.pct_agend_visit) + '</td>' +
+        '</tr>';
+      }).join("");
+
+  const html =
+    '<div class="kpi-grid">' + kpis + '</div>' +
+    diagBlock +
+    '<div class="row two-col">' +
+      '<div class="card">' +
+        '<h3 class="card-title">Funil de conversão</h3>' +
+        '<p class="card-subtitle">Cumulativo · ' + periodLabel + '</p>' +
+        funnelHtml +
+      '</div>' +
+      '<div class="card">' +
+        '<h3 class="card-title">Onde estão os deals abertos agora</h3>' +
+        '<p class="card-subtitle">Fila de trabalho atual · ignora filtros de período · <span style="color:var(--primary-light)">●</span> pré-vendas · <span style="color:var(--accent)">●</span> vendas</p>' +
+        statusHtml +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:16px;">' +
+      '<h3 class="card-title">Performance por empreendimento</h3>' +
+      '<p class="card-subtitle">' + periodLabel + ' · clique em qualquer número pra ver os deals · ordenado por volume de leads</p>' +
+      '<div class="table-wrap">' +
+        '<table>' +
+          '<thead><tr>' +
+            '<th>Empreendimento</th>' +
+            '<th class="num">Leads</th>' +
+            '<th class="num" title="Contatos únicos: leads agrupados por contact_id">Contatos</th>' +
+            '<th class="num">Qualif.</th>' +
+            '<th class="num">Agend.</th>' +
+            '<th class="num">Visitas</th>' +
+            '<th class="num">Negoc.</th>' +
+            '<th class="num">Prop.</th>' +
+            '<th class="num">% L→Q</th>' +
+            '<th class="num">% Q→A</th>' +
+            '<th class="num">% A→V</th>' +
+          '</tr></thead>' +
+          '<tbody>' + tableRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById("content").innerHTML = html;
+
+  // Bind clicks
+  document.querySelectorAll("td.clickable").forEach(td => {
+    td.addEventListener("click", () => {
+      openModal({
+        scope: "cell",
+        empreendimento: td.dataset.emp,
+        estagio: td.dataset.estagio
+      });
+    });
+  });
+  document.querySelectorAll(".kpi-card[data-estagio]").forEach(card => {
+    card.addEventListener("click", () => {
+      openModal({ scope: "estagio", estagio: card.dataset.estagio });
+    });
+  });
+}
+
+function kpiCardClickable(label, value, deltaVal, estagio) {
+  const arrow = deltaVal == null ? "" : deltaVal > 0 ? "▲" : deltaVal < 0 ? "▼" : "";
+  const klass = deltaVal == null ? "neutral" : deltaVal > 0 ? "up" : deltaVal < 0 ? "down" : "neutral";
+  const deltaText = deltaVal == null ? "" : arrow + " " + Math.abs(deltaVal).toFixed(1) + "% vs. anterior";
+  return '<div class="kpi-card" data-estagio="' + estagio + '">' +
+    '<div class="kpi-label">' + label + '</div>' +
+    '<div class="kpi-value">' + value + '</div>' +
+    (deltaText ? '<div class="kpi-delta ' + klass + '">' + deltaText + '</div>' : "") +
+  '</div>';
+}
+
+// Start
+loadAll();
+</script>
+
+</body>
+</html>
