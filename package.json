@@ -1,14 +1,22 @@
 {
   "name": "api-dashboard-bioma",
   "version": "1.0.0",
-  "description": "API local que serve dados do BigQuery (Bioma CRM) para o dashboard React",
-  "main": "server.js",
+  "description": "API local Express + dashboard HTML que servem dados do BigQuery (Bioma CRM) para análise de funil de pré-vendas e vendas",
+  "main": "server/src/index.js",
   "type": "module",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+  "engines": {
+    "node": ">=20"
   },
-  "keywords": [],
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "node --watch server/src/index.js"
+  },
+  "keywords": [
+    "bigquery",
+    "crm",
+    "dashboard",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
