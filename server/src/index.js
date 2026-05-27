@@ -9,6 +9,7 @@ import { empreendimentosRouter } from "./routes/empreendimentos.js";
 import { performanceRouter } from "./routes/performance.js";
 import { statusRouter } from "./routes/status.js";
 import { dealsRouter } from "./routes/deals.js";
+import { attributionRouter } from "./routes/attribution.js";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use(empreendimentosRouter);
 app.use(performanceRouter);
 app.use(statusRouter);
 app.use(dealsRouter);
+app.use(attributionRouter);
 
 app.use(errorHandler);
 

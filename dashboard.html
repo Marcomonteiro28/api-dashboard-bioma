@@ -433,6 +433,38 @@
   .badge-ganho { background: #FFE4CC; color: var(--accent); }
   .badge-perdido { background: #F5DAD5; color: var(--danger); }
 
+  .meta-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--primary-pale);
+    border-radius: 10px;
+  }
+  .meta-kpi-label {
+    font-size: 10px;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+  .meta-kpi-value {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: 6px;
+    letter-spacing: -0.4px;
+  }
+  .meta-kpi-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .num-money { color: var(--accent); font-weight: 600; }
+  .num-zero { color: var(--text-muted); }
+
   footer { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); }
   footer code { background: var(--primary-pale); padding: 2px 6px; border-radius: 4px; color: var(--text-soft); font-family: var(--font-display); }
   .error code { background: #F5DAD5; color: var(--danger); font-family: var(--font-display); }
@@ -513,7 +545,8 @@ const state = {
   selectedStatus: [0, 1, 2],
   statusData: [],
   perfEmpData: [],
-  perfEmpDataPrev: []
+  perfEmpDataPrev: [],
+  attribData: []
 };
 
 // ====================================================================
@@ -633,12 +666,14 @@ async function fetchPerformanceEmp() {
     }
     return p;
   };
-  const [respCur, respPrev] = await Promise.all([
+  const [respCur, respPrev, respAttrib] = await Promise.all([
     fetchAPI("/api/performance-emp?" + buildParams(from, to).toString()),
-    fetchAPI("/api/performance-emp?" + buildParams(prev.from, prev.to).toString())
+    fetchAPI("/api/performance-emp?" + buildParams(prev.from, prev.to).toString()),
+    fetchAPI("/api/attribution-emp?" + buildParams(from, to).toString())
   ]);
   state.perfEmpData = respCur.data;
   state.perfEmpDataPrev = respPrev.data;
+  state.attribData = respAttrib.data;
 }
 
 async function loadAll() {
@@ -1228,9 +1263,12 @@ function render() {
         '</tr>';
       }).join("");
 
+  const attribBlock = buildAttributionBlock(periodLabel);
+
   const html =
     '<div class="kpi-grid">' + kpis + '</div>' +
     diagBlock +
+    attribBlock +
     '<div class="row two-col">' +
       '<div class="card">' +
         '<h3 class="card-title">Funil de conversão</h3>' +
@@ -1283,6 +1321,101 @@ function render() {
       openModal({ scope: "estagio", estagio: card.dataset.estagio });
     });
   });
+}
+
+function buildAttributionBlock(periodLabel) {
+  const data = state.attribData || [];
+  if (data.length === 0) {
+    return "";
+  }
+
+  const totals = data.reduce((acc, e) => {
+    acc.gasto += Number(e.gasto_meta_brl) || 0;
+    acc.leads += Number(e.leads) || 0;
+    acc.qualif += Number(e.qualificados) || 0;
+    acc.impr += Number(e.impressoes) || 0;
+    acc.cliques += Number(e.cliques) || 0;
+    if (Number(e.gasto_meta_brl) > 0) acc.empsComInvest++;
+    if (Number(e.leads) > 0 || Number(e.gasto_meta_brl) > 0) acc.empsTotal++;
+    return acc;
+  }, { gasto: 0, leads: 0, qualif: 0, impr: 0, cliques: 0, empsComInvest: 0, empsTotal: 0 });
+
+  const cplGlobal = totals.leads ? totals.gasto / totals.leads : null;
+  const cpqGlobal = totals.qualif ? totals.gasto / totals.qualif : null;
+  const ctrGlobal = totals.impr ? (totals.cliques / totals.impr) * 100 : null;
+
+  const kpiStrip =
+    '<div class="meta-kpi-strip">' +
+      '<div><div class="meta-kpi-label">Gasto Meta no período</div>' +
+        '<div class="meta-kpi-value">' + fmtBRL(totals.gasto) + '</div>' +
+        '<div class="meta-kpi-sub">' + fmtNum(totals.impr) + ' impressões · ' + fmtNum(totals.cliques) + ' cliques</div>' +
+      '</div>' +
+      '<div><div class="meta-kpi-label">CPL global</div>' +
+        '<div class="meta-kpi-value">' + (cplGlobal == null ? "—" : fmtBRL(cplGlobal)) + '</div>' +
+        '<div class="meta-kpi-sub">' + fmtNum(totals.leads) + ' leads vindos do CRM</div>' +
+      '</div>' +
+      '<div><div class="meta-kpi-label">CPQ global</div>' +
+        '<div class="meta-kpi-value">' + (cpqGlobal == null ? "—" : fmtBRL(cpqGlobal)) + '</div>' +
+        '<div class="meta-kpi-sub">' + fmtNum(totals.qualif) + ' qualificados</div>' +
+      '</div>' +
+      '<div><div class="meta-kpi-label">CTR global</div>' +
+        '<div class="meta-kpi-value">' + (ctrGlobal == null ? "—" : fmtPct(ctrGlobal)) + '</div>' +
+        '<div class="meta-kpi-sub">' + totals.empsComInvest + ' empreendimento(s) com investimento</div>' +
+      '</div>' +
+    '</div>';
+
+  const sorted = [...data].sort((a, b) => (Number(b.gasto_meta_brl) || 0) - (Number(a.gasto_meta_brl) || 0));
+
+  const moneyOrZero = (v) => {
+    const n = Number(v) || 0;
+    if (n === 0) return '<span class="num-zero">—</span>';
+    return '<span class="num-money">' + fmtBRL(n) + '</span>';
+  };
+  const pctOrDash = (v) => {
+    if (v == null) return '<span class="num-zero">—</span>';
+    const n = Number(v);
+    return fmtPct(n);
+  };
+
+  const rows = sorted.map(e => {
+    const emp = e.empreendimento;
+    const gasto = Number(e.gasto_meta_brl) || 0;
+    return '<tr>' +
+      '<td class="emp">' + emp + '</td>' +
+      '<td class="num">' + fmtNum(e.leads) + '</td>' +
+      '<td class="num">' + fmtNum(e.qualificados) + '</td>' +
+      '<td class="num">' + fmtNum(e.visitas) + '</td>' +
+      '<td class="num">' + moneyOrZero(gasto) + '</td>' +
+      '<td class="num">' + moneyOrZero(e.cpl_brl) + '</td>' +
+      '<td class="num">' + moneyOrZero(e.cpq_brl) + '</td>' +
+      '<td class="num">' + moneyOrZero(e.cpv_brl) + '</td>' +
+      '<td class="num">' + pctOrDash(e.ctr_pct) + '</td>' +
+      '<td class="num">' + moneyOrZero(e.cpc_brl) + '</td>' +
+    '</tr>';
+  }).join("");
+
+  return '<div class="card" style="margin-bottom:16px;">' +
+    '<h3 class="card-title">Atribuição Meta × CRM</h3>' +
+    '<p class="card-subtitle">' + periodLabel + ' · gasto na plataforma cruzado com leads/qualificados/visitas do CRM por empreendimento</p>' +
+    kpiStrip +
+    '<div class="table-wrap">' +
+      '<table>' +
+        '<thead><tr>' +
+          '<th>Empreendimento</th>' +
+          '<th class="num">Leads</th>' +
+          '<th class="num">Qualif</th>' +
+          '<th class="num">Visitas</th>' +
+          '<th class="num" title="Total investido no período">Gasto Meta</th>' +
+          '<th class="num" title="Custo por lead = gasto / leads CRM">CPL</th>' +
+          '<th class="num" title="Custo por qualificado = gasto / qualificados">CPQ</th>' +
+          '<th class="num" title="Custo por visita realizada">CPV</th>' +
+          '<th class="num">CTR</th>' +
+          '<th class="num">CPC</th>' +
+        '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+    '</div>' +
+  '</div>';
 }
 
 function kpiCardClickable(label, value, deltaVal, estagio) {
