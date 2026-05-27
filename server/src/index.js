@@ -10,6 +10,7 @@ import { performanceRouter } from "./routes/performance.js";
 import { statusRouter } from "./routes/status.js";
 import { dealsRouter } from "./routes/deals.js";
 import { attributionRouter } from "./routes/attribution.js";
+import { creativeAttributionRouter } from "./routes/creativeAttribution.js";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use(performanceRouter);
 app.use(statusRouter);
 app.use(dealsRouter);
 app.use(attributionRouter);
+app.use(creativeAttributionRouter);
 
 app.use(errorHandler);
 

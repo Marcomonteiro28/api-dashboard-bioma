@@ -33,6 +33,8 @@ const OBJETIVO_CASE = `
   END
 `;
 
+const NORM_FN = (col) => `LOWER(REGEXP_REPLACE(NORMALIZE(${col}, NFD), r'\\p{Mn}', ''))`;
+
 export const VIEWS = {
   vw_meta_campaign_attribution: `
     SELECT
@@ -60,6 +62,67 @@ export const VIEWS = {
     JOIN ${viewName("vw_meta_campaign_attribution")} a ON a.campaign_id = i.campaign_id
     WHERE a.empreendimento IS NOT NULL
     GROUP BY dt, a.empreendimento, a.objetivo_parsed
+  `,
+
+  vw_meta_ads_norm: `
+    SELECT
+      id AS ad_id,
+      adset_id,
+      campaign_id,
+      name AS ad_name,
+      ${NORM_FN("name")} AS ad_name_norm,
+      effective_status
+    FROM ${tableRef("meta_ads")}
+    WHERE name IS NOT NULL
+  `,
+
+  vw_lead_creative: `
+    SELECT
+      d.deal_id,
+      d.empreendimento,
+      d.status,
+      d.campanha_deal,
+      d.criativo_deal,
+      ${NORM_FN("d.criativo_deal")} AS criativo_norm,
+      ${NORM_FN("d.campanha_deal")} AS campanha_norm,
+      d.dt_entrada,
+      d.dt_qualificado,
+      d.dt_visita_agendada,
+      d.dt_visita_realizada,
+      d.dt_fechamento,
+      d.valor,
+      a.ad_id AS matched_ad_id,
+      a.campaign_id AS matched_campaign_id,
+      c.name AS matched_campaign_name,
+      CASE
+        WHEN a.ad_id IS NOT NULL THEN 'AD_NAME'
+        WHEN c.id IS NOT NULL THEN 'CAMPAIGN_NAME'
+        ELSE 'NO_MATCH'
+      END AS match_type
+    FROM ${tableRef("crm_deals_csv")} d
+    LEFT JOIN ${viewName("vw_meta_ads_norm")} a
+      ON a.ad_name_norm = ${NORM_FN("d.criativo_deal")}
+    LEFT JOIN ${tableRef("meta_campaigns")} c
+      ON ${NORM_FN("c.name")} = ${NORM_FN("d.campanha_deal")}
+      AND a.ad_id IS NULL
+    WHERE d.criativo_deal IS NOT NULL OR d.campanha_deal IS NOT NULL
+  `,
+
+  vw_creative_performance: `
+    SELECT
+      COALESCE(criativo_deal, '(sem criativo)') AS criativo,
+      ANY_VALUE(matched_ad_id) AS ad_id,
+      ANY_VALUE(matched_campaign_id) AS campaign_id,
+      ANY_VALUE(match_type) AS match_type,
+      empreendimento,
+      COUNT(DISTINCT deal_id) AS leads,
+      COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)) AS qualificados,
+      COUNT(DISTINCT IF(dt_visita_agendada IS NOT NULL, deal_id, NULL)) AS agendamentos,
+      COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)) AS visitas,
+      COUNT(DISTINCT IF(LOWER(status) LIKE '%ganh%', deal_id, NULL)) AS ganhos,
+      COUNT(DISTINCT IF(LOWER(status) LIKE '%perd%', deal_id, NULL)) AS perdidos
+    FROM ${viewName("vw_lead_creative")}
+    GROUP BY criativo, empreendimento
   `,
 };
 

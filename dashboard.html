@@ -465,6 +465,23 @@
   .num-money { color: var(--accent); font-weight: 600; }
   .num-zero { color: var(--text-muted); }
 
+  .match-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-family: var(--font-body);
+  }
+  .match-tag.ad { background: #E0F0E0; color: #2d6b2d; }
+  .match-tag.campaign { background: var(--primary-pale); color: var(--primary); }
+  .match-tag.none { background: #f5e8e3; color: var(--text-muted); }
+
+  .creative-row .creative-name { font-weight: 600; color: var(--text); max-width: 280px; }
+  .creative-row .creative-name small { color: var(--text-muted); font-weight: 400; display: block; font-size: 11px; margin-top: 2px; }
+
   footer { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); }
   footer code { background: var(--primary-pale); padding: 2px 6px; border-radius: 4px; color: var(--text-soft); font-family: var(--font-display); }
   .error code { background: #F5DAD5; color: var(--danger); font-family: var(--font-display); }
@@ -546,7 +563,8 @@ const state = {
   statusData: [],
   perfEmpData: [],
   perfEmpDataPrev: [],
-  attribData: []
+  attribData: [],
+  creativeData: []
 };
 
 // ====================================================================
@@ -666,14 +684,16 @@ async function fetchPerformanceEmp() {
     }
     return p;
   };
-  const [respCur, respPrev, respAttrib] = await Promise.all([
+  const [respCur, respPrev, respAttrib, respCreative] = await Promise.all([
     fetchAPI("/api/performance-emp?" + buildParams(from, to).toString()),
     fetchAPI("/api/performance-emp?" + buildParams(prev.from, prev.to).toString()),
-    fetchAPI("/api/attribution-emp?" + buildParams(from, to).toString())
+    fetchAPI("/api/attribution-emp?" + buildParams(from, to).toString()),
+    fetchAPI("/api/attribution-creative?" + buildParams(from, to).toString())
   ]);
   state.perfEmpData = respCur.data;
   state.perfEmpDataPrev = respPrev.data;
   state.attribData = respAttrib.data;
+  state.creativeData = respCreative.data;
 }
 
 async function loadAll() {
@@ -1264,11 +1284,13 @@ function render() {
       }).join("");
 
   const attribBlock = buildAttributionBlock(periodLabel);
+  const creativeBlock = buildCreativeBlock(periodLabel);
 
   const html =
     '<div class="kpi-grid">' + kpis + '</div>' +
     diagBlock +
     attribBlock +
+    creativeBlock +
     '<div class="row two-col">' +
       '<div class="card">' +
         '<h3 class="card-title">Funil de conversão</h3>' +
@@ -1411,6 +1433,61 @@ function buildAttributionBlock(periodLabel) {
           '<th class="num" title="Custo por visita realizada">CPV</th>' +
           '<th class="num">CTR</th>' +
           '<th class="num">CPC</th>' +
+        '</tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+    '</div>' +
+  '</div>';
+}
+
+function buildCreativeBlock(periodLabel) {
+  const data = state.creativeData || [];
+  if (data.length === 0) return "";
+
+  const tagFor = (matchType) => {
+    if (matchType === "AD_NAME") return '<span class="match-tag ad" title="Bate com nome de anuncio no Meta">✓ AD</span>';
+    if (matchType === "CAMPAIGN_NAME") return '<span class="match-tag campaign" title="Bate com nome de campanha (nao individual)">~ CAMP</span>';
+    return '<span class="match-tag none" title="Sem match no Meta - audience, lookalike ou criativo descontinuado">—</span>';
+  };
+
+  const moneyOr = (v) => {
+    const n = Number(v) || 0;
+    if (n === 0) return '<span class="num-zero">—</span>';
+    return '<span class="num-money">' + fmtBRL(n) + '</span>';
+  };
+
+  const rows = data.slice(0, 20).map(c => {
+    return '<tr class="creative-row">' +
+      '<td class="creative-name">' + c.criativo + '<small>' + (c.empreendimento || '—') + ' · ' + tagFor(c.match_type) + '</small></td>' +
+      '<td class="num">' + fmtNum(c.leads) + '</td>' +
+      '<td class="num">' + fmtNum(c.qualificados) + '</td>' +
+      '<td class="num">' + fmtNum(c.agendamentos) + '</td>' +
+      '<td class="num">' + fmtNum(c.visitas) + '</td>' +
+      '<td class="num">' + moneyOr(c.gasto_brl) + '</td>' +
+      '<td class="num">' + moneyOr(c.cpl_brl) + '</td>' +
+      '<td class="num">' + moneyOr(c.cpq_brl) + '</td>' +
+      '<td class="num">' + (c.ctr_pct != null && Number(c.ctr_pct) > 0 ? fmtPct(Number(c.ctr_pct)) : '<span class="num-zero">—</span>') + '</td>' +
+    '</tr>';
+  }).join("");
+
+  const totalDeals = data.reduce((s, c) => s + (Number(c.leads) || 0), 0);
+  const adsBateu = data.filter(c => c.match_type === "AD_NAME").length;
+
+  return '<div class="card" style="margin-bottom:16px;">' +
+    '<h3 class="card-title">Top criativos × leads (atribuição AC × Meta)</h3>' +
+    '<p class="card-subtitle">' + periodLabel + ' · ' + data.length + ' criativos · ' + totalDeals + ' deals taggeados · ' + adsBateu + ' bateram com Meta ads · gasto disponível apenas onde houve match</p>' +
+    '<div class="table-wrap">' +
+      '<table>' +
+        '<thead><tr>' +
+          '<th>Criativo · empreendimento · match</th>' +
+          '<th class="num">Leads</th>' +
+          '<th class="num">Qualif</th>' +
+          '<th class="num">Agend</th>' +
+          '<th class="num">Visitas</th>' +
+          '<th class="num">Gasto Meta</th>' +
+          '<th class="num">CPL</th>' +
+          '<th class="num">CPQ</th>' +
+          '<th class="num">CTR</th>' +
         '</tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
       '</table>' +
