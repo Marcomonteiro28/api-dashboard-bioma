@@ -1,6 +1,7 @@
 export const META_TABLES = {
   meta_campaigns: [
     { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "account_id", type: "STRING" },
     { name: "name", type: "STRING" },
     { name: "status", type: "STRING" },
     { name: "effective_status", type: "STRING" },
@@ -16,6 +17,7 @@ export const META_TABLES = {
   ],
   meta_adsets: [
     { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "account_id", type: "STRING" },
     { name: "campaign_id", type: "STRING" },
     { name: "name", type: "STRING" },
     { name: "status", type: "STRING" },
@@ -32,6 +34,7 @@ export const META_TABLES = {
   ],
   meta_ads: [
     { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "account_id", type: "STRING" },
     { name: "adset_id", type: "STRING" },
     { name: "campaign_id", type: "STRING" },
     { name: "name", type: "STRING" },
@@ -44,6 +47,7 @@ export const META_TABLES = {
   ],
   meta_adcreatives: [
     { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "account_id", type: "STRING" },
     { name: "name", type: "STRING" },
     { name: "title", type: "STRING" },
     { name: "body", type: "STRING" },

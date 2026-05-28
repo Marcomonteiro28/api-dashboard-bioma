@@ -1,6 +1,7 @@
 import { BigQuery } from "@google-cloud/bigquery";
 import { config } from "../config.js";
-import { fetchPaginated, adAccountPath } from "./client.js";
+import { fetchPaginated, adAccountPath, listAccounts } from "./client.js";
+import { replaceTableLoad } from "../bq-load.js";
 import {
   META_TABLES,
   CAMPAIGN_FIELDS,
@@ -18,144 +19,121 @@ const toBudget = (v) => (v == null ? null : Number(v) / 100);
 const toInt = (v) => (v == null || v === "" ? null : parseInt(v, 10));
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
 
-async function ensureTable(tableName) {
-  const schema = META_TABLES[tableName];
-  if (!schema) throw new Error(`Schema desconhecido: ${tableName}`);
-  const table = dataset.table(tableName);
-  const [exists] = await table.exists();
-  if (!exists) {
-    await dataset.createTable(tableName, {
-      schema,
-      location: config.location,
-    });
+async function syncForEachAccount(fn) {
+  const accounts = listAccounts();
+  const all = [];
+  for (const acc of accounts) {
+    const rows = await fn(acc);
+    all.push(...rows);
     console.log(JSON.stringify({
       ts: new Date().toISOString(),
-      kind: "bq.table_created",
-      table: tableName,
+      kind: "meta.account_done",
+      account_id: acc,
+      rows: rows.length,
     }));
   }
-}
-
-async function replaceAll(tableName, rows) {
-  await ensureTable(tableName);
-  const table = dataset.table(tableName);
-  await bq.query({
-    query: `DELETE FROM \`${config.project}.${config.meta.dataset}.${tableName}\` WHERE TRUE`,
-    location: config.location,
-  });
-  if (rows.length === 0) return 0;
-  await table.insert(rows, { ignoreUnknownValues: false });
-  return rows.length;
-}
-
-async function upsertInsights(rows) {
-  const tableName = "meta_insights_daily";
-  await ensureTable(tableName);
-  if (rows.length === 0) return 0;
-
-  const since = rows.reduce((min, r) => (r.date_start < min ? r.date_start : min), rows[0].date_start);
-  const until = rows.reduce((max, r) => (r.date_start > max ? r.date_start : max), rows[0].date_start);
-  await bq.query({
-    query: `DELETE FROM \`${config.project}.${config.meta.dataset}.${tableName}\` WHERE date_start BETWEEN @since AND @until`,
-    params: { since, until },
-    location: config.location,
-  });
-
-  const table = dataset.table(tableName);
-  const CHUNK = 500;
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    await table.insert(rows.slice(i, i + CHUNK), { ignoreUnknownValues: false });
-  }
-  return rows.length;
+  return all;
 }
 
 export async function syncCampaigns() {
   const now = new Date().toISOString();
-  const raw = await fetchPaginated(adAccountPath("/campaigns"), {
-    fields: CAMPAIGN_FIELDS.join(","),
+  const rows = await syncForEachAccount(async (acc) => {
+    const raw = await fetchPaginated(adAccountPath(acc, "/campaigns"), {
+      fields: CAMPAIGN_FIELDS.join(","),
+    });
+    return raw.map((c) => ({
+      id: c.id,
+      account_id: acc,
+      name: c.name ?? null,
+      status: c.status ?? null,
+      effective_status: c.effective_status ?? null,
+      objective: c.objective ?? null,
+      buying_type: c.buying_type ?? null,
+      daily_budget: toBudget(c.daily_budget),
+      lifetime_budget: toBudget(c.lifetime_budget),
+      start_time: toIso(c.start_time),
+      stop_time: toIso(c.stop_time),
+      created_time: toIso(c.created_time),
+      updated_time: toIso(c.updated_time),
+      synced_at: now,
+    }));
   });
-  const rows = raw.map((c) => ({
-    id: c.id,
-    name: c.name ?? null,
-    status: c.status ?? null,
-    effective_status: c.effective_status ?? null,
-    objective: c.objective ?? null,
-    buying_type: c.buying_type ?? null,
-    daily_budget: toBudget(c.daily_budget),
-    lifetime_budget: toBudget(c.lifetime_budget),
-    start_time: toIso(c.start_time),
-    stop_time: toIso(c.stop_time),
-    created_time: toIso(c.created_time),
-    updated_time: toIso(c.updated_time),
-    synced_at: now,
-  }));
-  return replaceAll("meta_campaigns", rows);
+  return replaceTableLoad(dataset.table("meta_campaigns"), META_TABLES.meta_campaigns, rows);
 }
 
 export async function syncAdsets() {
   const now = new Date().toISOString();
-  const raw = await fetchPaginated(adAccountPath("/adsets"), {
-    fields: ADSET_FIELDS.join(","),
+  const rows = await syncForEachAccount(async (acc) => {
+    const raw = await fetchPaginated(adAccountPath(acc, "/adsets"), {
+      fields: ADSET_FIELDS.join(","),
+    });
+    return raw.map((a) => ({
+      id: a.id,
+      account_id: acc,
+      campaign_id: a.campaign_id ?? null,
+      name: a.name ?? null,
+      status: a.status ?? null,
+      effective_status: a.effective_status ?? null,
+      optimization_goal: a.optimization_goal ?? null,
+      billing_event: a.billing_event ?? null,
+      daily_budget: toBudget(a.daily_budget),
+      lifetime_budget: toBudget(a.lifetime_budget),
+      start_time: toIso(a.start_time),
+      end_time: toIso(a.end_time),
+      created_time: toIso(a.created_time),
+      updated_time: toIso(a.updated_time),
+      synced_at: now,
+    }));
   });
-  const rows = raw.map((a) => ({
-    id: a.id,
-    campaign_id: a.campaign_id ?? null,
-    name: a.name ?? null,
-    status: a.status ?? null,
-    effective_status: a.effective_status ?? null,
-    optimization_goal: a.optimization_goal ?? null,
-    billing_event: a.billing_event ?? null,
-    daily_budget: toBudget(a.daily_budget),
-    lifetime_budget: toBudget(a.lifetime_budget),
-    start_time: toIso(a.start_time),
-    end_time: toIso(a.end_time),
-    created_time: toIso(a.created_time),
-    updated_time: toIso(a.updated_time),
-    synced_at: now,
-  }));
-  return replaceAll("meta_adsets", rows);
+  return replaceTableLoad(dataset.table("meta_adsets"), META_TABLES.meta_adsets, rows);
 }
 
 export async function syncAds() {
   const now = new Date().toISOString();
-  const raw = await fetchPaginated(adAccountPath("/ads"), {
-    fields: AD_FIELDS.join(","),
+  const rows = await syncForEachAccount(async (acc) => {
+    const raw = await fetchPaginated(adAccountPath(acc, "/ads"), {
+      fields: AD_FIELDS.join(","),
+    });
+    return raw.map((a) => ({
+      id: a.id,
+      account_id: acc,
+      adset_id: a.adset_id ?? null,
+      campaign_id: a.campaign_id ?? null,
+      name: a.name ?? null,
+      status: a.status ?? null,
+      effective_status: a.effective_status ?? null,
+      creative_id: a.creative?.id ?? null,
+      created_time: toIso(a.created_time),
+      updated_time: toIso(a.updated_time),
+      synced_at: now,
+    }));
   });
-  const rows = raw.map((a) => ({
-    id: a.id,
-    adset_id: a.adset_id ?? null,
-    campaign_id: a.campaign_id ?? null,
-    name: a.name ?? null,
-    status: a.status ?? null,
-    effective_status: a.effective_status ?? null,
-    creative_id: a.creative?.id ?? null,
-    created_time: toIso(a.created_time),
-    updated_time: toIso(a.updated_time),
-    synced_at: now,
-  }));
-  return replaceAll("meta_ads", rows);
+  return replaceTableLoad(dataset.table("meta_ads"), META_TABLES.meta_ads, rows);
 }
 
 export async function syncCreatives() {
   const now = new Date().toISOString();
-  const raw = await fetchPaginated(adAccountPath("/adcreatives"), {
-    fields: ADCREATIVE_FIELDS.join(","),
+  const rows = await syncForEachAccount(async (acc) => {
+    const raw = await fetchPaginated(adAccountPath(acc, "/adcreatives"), {
+      fields: ADCREATIVE_FIELDS.join(","),
+    });
+    return raw.map((c) => ({
+      id: c.id,
+      account_id: acc,
+      name: c.name ?? null,
+      title: c.title ?? null,
+      body: c.body ?? null,
+      image_hash: c.image_hash ?? null,
+      image_url: c.image_url ?? null,
+      thumbnail_url: c.thumbnail_url ?? null,
+      video_id: c.video_id ?? null,
+      link_url: c.link_url ?? null,
+      call_to_action_type: c.call_to_action_type ?? null,
+      object_type: c.object_type ?? null,
+      synced_at: now,
+    }));
   });
-  const rows = raw.map((c) => ({
-    id: c.id,
-    name: c.name ?? null,
-    title: c.title ?? null,
-    body: c.body ?? null,
-    image_hash: c.image_hash ?? null,
-    image_url: c.image_url ?? null,
-    thumbnail_url: c.thumbnail_url ?? null,
-    video_id: c.video_id ?? null,
-    link_url: c.link_url ?? null,
-    call_to_action_type: c.call_to_action_type ?? null,
-    object_type: c.object_type ?? null,
-    synced_at: now,
-  }));
-  return replaceAll("meta_adcreatives", rows);
+  return replaceTableLoad(dataset.table("meta_adcreatives"), META_TABLES.meta_adcreatives, rows);
 }
 
 export async function syncInsightsDaily() {
@@ -166,29 +144,30 @@ export async function syncInsightsDaily() {
   sinceDate.setDate(sinceDate.getDate() - lookback);
   const since = sinceDate.toISOString().slice(0, 10);
 
-  const raw = await fetchPaginated(adAccountPath("/insights"), {
-    level: "ad",
-    fields: INSIGHT_FIELDS.join(","),
-    time_increment: 1,
-    time_range: JSON.stringify({ since, until }),
+  const rows = await syncForEachAccount(async (acc) => {
+    const raw = await fetchPaginated(adAccountPath(acc, "/insights"), {
+      level: "ad",
+      fields: INSIGHT_FIELDS.join(","),
+      time_increment: 1,
+      time_range: JSON.stringify({ since, until }),
+    });
+    return raw.map((r) => ({
+      date_start: r.date_start,
+      ad_id: r.ad_id,
+      adset_id: r.adset_id ?? null,
+      campaign_id: r.campaign_id ?? null,
+      account_id: r.account_id ?? acc.replace("act_", ""),
+      impressions: toInt(r.impressions),
+      reach: toInt(r.reach),
+      clicks: toInt(r.clicks),
+      spend: toFloat(r.spend),
+      cpc: toFloat(r.cpc),
+      cpm: toFloat(r.cpm),
+      ctr: toFloat(r.ctr),
+      frequency: toFloat(r.frequency),
+      synced_at: now,
+    }));
   });
 
-  const rows = raw.map((r) => ({
-    date_start: r.date_start,
-    ad_id: r.ad_id,
-    adset_id: r.adset_id ?? null,
-    campaign_id: r.campaign_id ?? null,
-    account_id: r.account_id ?? null,
-    impressions: toInt(r.impressions),
-    reach: toInt(r.reach),
-    clicks: toInt(r.clicks),
-    spend: toFloat(r.spend),
-    cpc: toFloat(r.cpc),
-    cpm: toFloat(r.cpm),
-    ctr: toFloat(r.ctr),
-    frequency: toFloat(r.frequency),
-    synced_at: now,
-  }));
-
-  return upsertInsights(rows);
+  return replaceTableLoad(dataset.table("meta_insights_daily"), META_TABLES.meta_insights_daily, rows);
 }

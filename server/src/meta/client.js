@@ -6,8 +6,8 @@ function requireToken() {
   if (!config.meta.accessToken) {
     throw new Error("META_ACCESS_TOKEN nao definido no .env");
   }
-  if (!config.meta.adAccountId) {
-    throw new Error("META_AD_ACCOUNT_ID nao definido no .env (formato: act_1234567890)");
+  if (!config.meta.adAccountIds.length) {
+    throw new Error("META_AD_ACCOUNT_ID(S) nao definido no .env (formato: act_1234567890, separado por virgula se multiplas)");
   }
 }
 
@@ -68,7 +68,10 @@ export async function fetchMe() {
   return metaFetch(buildUrl("/me", { fields: "id,name" }));
 }
 
-export function adAccountPath(suffix = "") {
-  requireToken();
-  return `/${config.meta.adAccountId}${suffix}`;
+export function adAccountPath(accountId, suffix = "") {
+  return `/${accountId}${suffix}`;
+}
+
+export function listAccounts() {
+  return config.meta.adAccountIds;
 }
