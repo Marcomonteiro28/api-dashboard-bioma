@@ -13,7 +13,8 @@
     "sync:meta": "node server/src/jobs/sync-meta.js",
     "apply:meta-views": "node server/src/jobs/apply-meta-views.js",
     "import:csv-deals": "node server/src/jobs/import-csv-deals.js",
-    "sync:ac": "node server/src/jobs/sync-ac.js"
+    "sync:ac": "node server/src/jobs/sync-ac.js",
+    "sync:all": "npm run sync:ac && npm run sync:meta && npm run apply:meta-views"
   },
   "keywords": [
     "bigquery",

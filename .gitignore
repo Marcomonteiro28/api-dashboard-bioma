@@ -37,3 +37,6 @@ yarn-error.log*
 
 # Cache local
 .cache/
+
+# Sync logs do cron
+logs/
