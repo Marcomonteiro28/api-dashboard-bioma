@@ -24,7 +24,7 @@ export function buildCreativeAttributionQuery({ from, to, emps }) {
         COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)) AS qualificados,
         COUNT(DISTINCT IF(dt_visita_agendada IS NOT NULL, deal_id, NULL)) AS agendamentos,
         COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)) AS visitas,
-        COUNT(DISTINCT IF(LOWER(status) LIKE '%ganh%', deal_id, NULL)) AS ganhos
+        COUNT(DISTINCT IF(status = 1, deal_id, NULL)) AS ganhos
       FROM \`${proj}.${ds}.vw_lead_creative\`
       WHERE criativo_deal IS NOT NULL
         AND DATE(dt_entrada) BETWEEN @from AND @to

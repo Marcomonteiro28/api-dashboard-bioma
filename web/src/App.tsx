@@ -117,21 +117,27 @@ export function App() {
     const prevParams = { ...params, from: prev.from, to: prev.to };
 
     (async () => {
-      try {
-        const [cur, prv, attribR, creativeR] = await Promise.all([
-          api.performanceEmp(params),
-          api.performanceEmp(prevParams),
-          api.attributionEmp(params),
-          api.attributionCreative(params),
-        ]);
-        if (cancelled) return;
-        setPerf(cur.data);
-        setPerfPrev(prv.data);
-        setAttrib(attribR.data);
-        setCreative(creativeR.data);
-      } finally {
-        if (!cancelled) setRefreshing(false);
-      }
+      const safeFetch = async <T,>(p: Promise<T>, fallback: T): Promise<T> => {
+        try {
+          return await p;
+        } catch (e) {
+          console.error("API fetch falhou:", e);
+          return fallback;
+        }
+      };
+      const empty = { data: [], meta: { from, to, count: 0 } };
+      const [cur, prv, attribR, creativeR] = await Promise.all([
+        safeFetch(api.performanceEmp(params), empty),
+        safeFetch(api.performanceEmp(prevParams), empty),
+        safeFetch(api.attributionEmp(params), empty),
+        safeFetch(api.attributionCreative(params), empty),
+      ]);
+      if (cancelled) return;
+      setPerf(cur.data);
+      setPerfPrev(prv.data);
+      setAttrib(attribR.data);
+      setCreative(creativeR.data);
+      setRefreshing(false);
     })();
     return () => {
       cancelled = true;
