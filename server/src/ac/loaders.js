@@ -99,6 +99,7 @@ export async function syncDeals() {
     value: toFloat(d.value) != null ? toFloat(d.value) / 100 : null,
     currency: d.currency ?? null,
     status: toInt(d.status),
+    is_disabled: toBool(d.isDisabled),
     contact_id: d.contact ? String(d.contact) : null,
     organization_id: d.organization ? String(d.organization) : null,
     stage_id: d.stage ? String(d.stage) : null,

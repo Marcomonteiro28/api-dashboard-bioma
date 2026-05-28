@@ -5,6 +5,7 @@ export const AC_TABLES = {
     { name: "value", type: "FLOAT64" },
     { name: "currency", type: "STRING" },
     { name: "status", type: "INT64" },
+    { name: "is_disabled", type: "BOOL" },
     { name: "contact_id", type: "STRING" },
     { name: "organization_id", type: "STRING" },
     { name: "stage_id", type: "STRING" },

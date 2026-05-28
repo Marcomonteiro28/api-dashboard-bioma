@@ -64,6 +64,24 @@ export const VIEWS = {
     GROUP BY dt, a.empreendimento, a.objetivo_parsed
   `,
 
+  vw_status_atual_live: `
+    SELECT
+      s.dealstages_title AS status,
+      s.dealstages_order AS stage_rank,
+      CASE WHEN p.title = 'Vendas' THEN 'vendas'
+           WHEN p.title = 'Pre Vendas' THEN 'pre'
+           ELSE LOWER(p.title) END AS funil,
+      p.title AS pipeline,
+      COUNT(*) AS qtd
+    FROM ${tableRef("ac_deals")} d
+    JOIN \`${config.project}.raw_data.activecampaign_pipelines_dealstages\` s
+      ON s.dealstages_id = CAST(d.stage_id AS INT64)
+    JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
+      ON p.id = CAST(d.pipeline_id AS INT64)
+    WHERE d.status = 0 AND COALESCE(d.is_disabled, FALSE) = FALSE
+    GROUP BY status, stage_rank, funil, pipeline
+  `,
+
   vw_meta_ads_norm: `
     SELECT
       id AS ad_id,

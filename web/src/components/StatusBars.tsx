@@ -7,7 +7,7 @@ export function StatusBars({ rows }: { rows: StatusRow[] }) {
     <div className="card">
       <h3 className="card-title">Onde estão os deals abertos agora</h3>
       <p className="card-subtitle">
-        Fila de trabalho atual · ignora filtros de período ·{" "}
+        Fila de trabalho atual · snapshot ao vivo (última sync AC) · ignora filtros de período ·{" "}
         <span style={{ color: "var(--primary-light)" }}>●</span> pré-vendas ·{" "}
         <span style={{ color: "var(--accent)" }}>●</span> vendas
       </p>

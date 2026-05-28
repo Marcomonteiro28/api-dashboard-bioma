@@ -1,23 +1,14 @@
-import { tbl } from "../config.js";
+import { config } from "../config.js";
 
-export function buildStatusQuery({ emps }) {
-  const params = {};
-  const types = {};
-  const where = emps ? "WHERE empreendimento IN UNNEST(@emps)" : "";
-  if (emps) {
-    params.emps = emps;
-    types.emps = ["STRING"];
-  }
-
+// Le de vw_status_atual_live (bioma_meta) baseada na minha sync AC API
+// em vez de vw_status_atual (crm_marts/Kondado) que tem dados defasados
+// para 9h da manha. emps nao filtra mais (a view nao expoe empreendimento
+// e o caso de uso e snapshot global do pipeline).
+export function buildStatusQuery() {
   const sql = `
-    SELECT
-      status, stage_rank, funil, pipeline,
-      SUM(qtd) AS qtd
-    FROM ${tbl("vw_status_atual")}
-    ${where}
-    GROUP BY status, stage_rank, funil, pipeline
-    ORDER BY stage_rank ASC
+    SELECT status, stage_rank, funil, pipeline, qtd
+    FROM \`${config.project}.${config.meta.dataset}.vw_status_atual_live\`
+    ORDER BY pipeline, stage_rank ASC
   `;
-
-  return { sql, params, types };
+  return { sql, params: {}, types: {} };
 }
