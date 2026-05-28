@@ -11,6 +11,7 @@ import { statusRouter } from "./routes/status.js";
 import { dealsRouter } from "./routes/deals.js";
 import { attributionRouter } from "./routes/attribution.js";
 import { creativeAttributionRouter } from "./routes/creativeAttribution.js";
+import { leadDetailRouter } from "./routes/leadDetail.js";
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use(statusRouter);
 app.use(dealsRouter);
 app.use(attributionRouter);
 app.use(creativeAttributionRouter);
+app.use(leadDetailRouter);
 
 app.use(errorHandler);
 

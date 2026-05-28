@@ -5,6 +5,7 @@ import type {
   AttributionCreative,
   Deal,
   DealsMeta,
+  LeadDetailResponse,
 } from "./types";
 
 async function get<T>(path: string): Promise<T> {
@@ -54,4 +55,6 @@ export const api = {
       `/api/attribution-creative?${build(p)}`
     ),
   deals: (p: Params) => get<{ data: Deal[]; meta: DealsMeta }>(`/api/deals?${build(p)}`),
+  leadDetail: (dealId: string) =>
+    get<LeadDetailResponse>(`/api/leads/${encodeURIComponent(dealId)}`),
 };

@@ -12,6 +12,7 @@ export interface DealsModalProps {
   status?: number[];
   estagio?: string;
   onClose: () => void;
+  onOpenLead?: (dealId: string) => void;
 }
 
 export function DealsModal(props: DealsModalProps) {
@@ -150,7 +151,12 @@ export function DealsModal(props: DealsModalProps) {
                   </thead>
                   <tbody>
                     {deals.map((d) => (
-                      <tr key={d.deal_id}>
+                      <tr
+                        key={d.deal_id}
+                        className={props.onOpenLead ? "deal-row-clickable" : undefined}
+                        onClick={() => props.onOpenLead?.(d.deal_id)}
+                        title={props.onOpenLead ? "Clique para ver lead + criativo" : undefined}
+                      >
                         <td>{d.deal_id}</td>
                         <td>{d.contact_nome || "—"}</td>
                         <td>{d.contact_email || "—"}</td>

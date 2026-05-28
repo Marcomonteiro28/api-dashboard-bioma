@@ -12,8 +12,10 @@ import type {
   AttributionEmp,
   AttributionCreative,
   Estagio,
+  TabKey,
 } from "./types";
 import { Header } from "./components/Header";
+import { Tabs } from "./components/Tabs";
 import { Filters } from "./components/Filters";
 import { KpiGrid } from "./components/KpiGrid";
 import { Funnel } from "./components/Funnel";
@@ -23,6 +25,7 @@ import { EmpTable, buildEmpRows } from "./components/EmpTable";
 import { AttributionEmpBlock } from "./components/AttributionEmp";
 import { CreativeAttributionBlock } from "./components/CreativeAttribution";
 import { DealsModal, type DealsModalProps } from "./components/DealsModal";
+import { LeadCreativeModal } from "./components/LeadCreativeModal";
 
 interface Sums {
   leads: number;
@@ -78,6 +81,8 @@ export function App() {
   const [creative, setCreative] = useState<AttributionCreative[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [modal, setModal] = useState<DealsModalProps | null>(null);
+  const [leadModalId, setLeadModalId] = useState<string | null>(null);
+  const [tab, setTab] = useState<TabKey>("funil");
 
   // Bootstrap: empreendimentos + status atual
   useEffect(() => {
@@ -174,6 +179,8 @@ export function App() {
     { name: "Proposta", count: cur.propostas },
   ];
 
+  const onOpenLead = (dealId: string) => setLeadModalId(dealId);
+
   const openModalEstagio = (estagio: Estagio) => {
     setModal({
       title: estagio === "leads" ? "Todos os leads" : `Deals em ${estagio}`,
@@ -185,6 +192,7 @@ export function App() {
       status: state.selectedStatus,
       estagio: estagio !== "leads" ? estagio : undefined,
       onClose: () => setModal(null),
+      onOpenLead,
     });
   };
 
@@ -199,6 +207,7 @@ export function App() {
       status: state.selectedStatus,
       estagio: estagio !== "leads" ? estagio : undefined,
       onClose: () => setModal(null),
+      onOpenLead,
     });
   };
 
@@ -212,6 +221,7 @@ export function App() {
       allEmps: state.allEmps,
       status: state.selectedStatus,
       onClose: () => setModal(null),
+      onOpenLead,
     });
   };
 
@@ -238,23 +248,29 @@ export function App() {
 
       {!bootLoading && !bootError && (
         <>
+          <Tabs active={tab} onChange={setTab} />
           <Filters onViewData={openModalFiltros} />
 
           {refreshing && perf.length === 0 && (
             <div className="loading">Atualizando dados...</div>
           )}
 
-          {perf.length > 0 && (
+          {perf.length > 0 && tab === "funil" && (
             <>
               <KpiGrid cur={cur} prev={prev} onOpenStage={openModalEstagio} />
               <Diagnostics porEmp={porEmpDiag} />
-              <AttributionEmpBlock data={attrib} periodLabel={periodLabel} />
-              <CreativeAttributionBlock data={creative} periodLabel={periodLabel} />
               <div className="row two-col">
                 <Funnel stages={funnelStages} periodLabel={periodLabel} />
                 <StatusBars rows={statusData} />
               </div>
               <EmpTable rows={empRows} periodLabel={periodLabel} onOpenCell={openModalCell} />
+            </>
+          )}
+
+          {perf.length > 0 && tab === "marketing" && (
+            <>
+              <AttributionEmpBlock data={attrib} periodLabel={periodLabel} />
+              <CreativeAttributionBlock data={creative} periodLabel={periodLabel} />
             </>
           )}
         </>
@@ -265,6 +281,9 @@ export function App() {
       </footer>
 
       {modal && <DealsModal {...modal} />}
+      {leadModalId && (
+        <LeadCreativeModal dealId={leadModalId} onClose={() => setLeadModalId(null)} />
+      )}
     </div>
   );
 }
