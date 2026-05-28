@@ -11,6 +11,7 @@ import type {
   StatusRow,
   AttributionEmp,
   AttributionCreative,
+  CreativeFunnelRow,
   Estagio,
   TabKey,
 } from "./types";
@@ -24,6 +25,7 @@ import { buildPorEmp, Diagnostics } from "./components/Diagnostics";
 import { EmpTable, buildEmpRows } from "./components/EmpTable";
 import { AttributionEmpBlock } from "./components/AttributionEmp";
 import { CreativeAttributionBlock } from "./components/CreativeAttribution";
+import { CreativeFunnelDash } from "./components/CreativeFunnelDash";
 import { DealsModal, type DealsModalProps } from "./components/DealsModal";
 import { LeadCreativeModal } from "./components/LeadCreativeModal";
 
@@ -79,6 +81,8 @@ export function App() {
   const [perfPrev, setPerfPrev] = useState<PerformanceEmp[]>([]);
   const [attrib, setAttrib] = useState<AttributionEmp[]>([]);
   const [creative, setCreative] = useState<AttributionCreative[]>([]);
+  const [creativeFunnel, setCreativeFunnel] = useState<CreativeFunnelRow[]>([]);
+  const MIN_LEADS = 5;
   const [refreshing, setRefreshing] = useState(false);
   const [modal, setModal] = useState<DealsModalProps | null>(null);
   const [leadModalId, setLeadModalId] = useState<string | null>(null);
@@ -131,17 +135,20 @@ export function App() {
         }
       };
       const empty = { data: [], meta: { from, to, count: 0 } };
-      const [cur, prv, attribR, creativeR] = await Promise.all([
+      const emptyFunnel = { data: [], meta: { from, to, count: 0, min_leads: MIN_LEADS } };
+      const [cur, prv, attribR, creativeR, funnelR] = await Promise.all([
         safeFetch(api.performanceEmp(params), empty),
         safeFetch(api.performanceEmp(prevParams), empty),
         safeFetch(api.attributionEmp(params), empty),
         safeFetch(api.attributionCreative(params), empty),
+        safeFetch(api.creativeFunnel({ ...params, min_leads: MIN_LEADS }), emptyFunnel),
       ]);
       if (cancelled) return;
       setPerf(cur.data);
       setPerfPrev(prv.data);
       setAttrib(attribR.data);
       setCreative(creativeR.data);
+      setCreativeFunnel(funnelR.data);
       setRefreshing(false);
     })();
     return () => {
@@ -270,6 +277,11 @@ export function App() {
           {perf.length > 0 && tab === "marketing" && (
             <>
               <AttributionEmpBlock data={attrib} periodLabel={periodLabel} />
+              <CreativeFunnelDash
+                data={creativeFunnel}
+                periodLabel={periodLabel}
+                minLeads={MIN_LEADS}
+              />
               <CreativeAttributionBlock data={creative} periodLabel={periodLabel} />
             </>
           )}

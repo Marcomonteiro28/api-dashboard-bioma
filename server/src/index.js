@@ -12,6 +12,7 @@ import { dealsRouter } from "./routes/deals.js";
 import { attributionRouter } from "./routes/attribution.js";
 import { creativeAttributionRouter } from "./routes/creativeAttribution.js";
 import { leadDetailRouter } from "./routes/leadDetail.js";
+import { creativeFunnelRouter } from "./routes/creativeFunnel.js";
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use(dealsRouter);
 app.use(attributionRouter);
 app.use(creativeAttributionRouter);
 app.use(leadDetailRouter);
+app.use(creativeFunnelRouter);
 
 app.use(errorHandler);
 

@@ -159,6 +159,29 @@ export interface LeadDetailResponse {
 
 export type TabKey = "funil" | "marketing";
 
+export interface CreativeFunnelRow {
+  criativo: string;
+  empreendimento: string | null;
+  match_type: MatchType;
+  ad_id: string | null;
+  campaign_id: string | null;
+  leads: number;
+  qualificados: number;
+  agendamentos: number;
+  visitas: number;
+  ganhos: number;
+  pct_qualif: number;
+  pct_qualif_agend: number;
+  pct_agend_visit: number;
+  pct_ganho: number;
+  progression_score: number;
+  gasto_brl: number;
+  impressoes: number;
+  cliques: number;
+  custo_por_visita_brl: number | null;
+  custo_por_agend_brl: number | null;
+}
+
 export type Estagio =
   | "leads"
   | "aguardando_retorno"

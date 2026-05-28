@@ -6,6 +6,7 @@ import type {
   Deal,
   DealsMeta,
   LeadDetailResponse,
+  CreativeFunnelRow,
 } from "./types";
 
 async function get<T>(path: string): Promise<T> {
@@ -57,4 +58,12 @@ export const api = {
   deals: (p: Params) => get<{ data: Deal[]; meta: DealsMeta }>(`/api/deals?${build(p)}`),
   leadDetail: (dealId: string) =>
     get<LeadDetailResponse>(`/api/leads/${encodeURIComponent(dealId)}`),
+  creativeFunnel: (p: Params & { min_leads?: number }) => {
+    const qs = build(p);
+    const min = p.min_leads ? `&min_leads=${p.min_leads}` : "";
+    return get<{
+      data: CreativeFunnelRow[];
+      meta: { from: string; to: string; count: number; min_leads: number };
+    }>(`/api/creative-funnel?${qs}${min}`);
+  },
 };

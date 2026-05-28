@@ -503,6 +503,45 @@ tbody tr:hover { background: var(--primary-pale); }
 .badge-ganho { background: #FFE4CC; color: var(--accent); }
 .badge-perdido { background: #F5DAD5; color: var(--danger); }
 
+.cf-table tbody td { vertical-align: middle; }
+.cf-rank {
+  display: inline-block;
+  background: var(--primary-pale);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+.cf-score-cell { min-width: 140px; padding: 12px 12px 12px 0; }
+.cf-score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cf-score-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 36px;
+  text-align: right;
+  font-size: 13px;
+}
+.cf-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--primary-pale);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cf-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.3s;
+}
+
 .deal-row-clickable { cursor: pointer; }
 .deal-row-clickable:hover { background: var(--primary-pale); }
 
