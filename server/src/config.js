@@ -34,6 +34,9 @@ export const config = {
     })(),
     insightsLookbackDays: parseInt(process.env.META_INSIGHTS_LOOKBACK_DAYS || "30", 10),
     dataset: process.env.META_BQ_DATASET || process.env.BQ_DATASET || "crm_marts",
+    rateLimitMs: parseInt(process.env.META_RATE_LIMIT_MS || "250", 10),
+    retryMaxAttempts: parseInt(process.env.META_RETRY_MAX || "4", 10),
+    retryBackoffMs: parseInt(process.env.META_RETRY_BACKOFF_MS || "30000", 10),
   },
   ac: {
     apiUrl: (process.env.AC_API_URL || "").replace(/\/+$/, ""),

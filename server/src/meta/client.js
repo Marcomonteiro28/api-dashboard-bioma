@@ -21,13 +21,30 @@ function buildUrl(path, params = {}) {
   return url.toString();
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const RETRYABLE_META_CODES = new Set([4, 17, 32, 613, 80004]);
+
 async function metaFetch(url) {
-  const start = Date.now();
-  const res = await fetch(url);
-  const durationMs = Date.now() - start;
-  const body = await res.json();
-  if (!res.ok) {
+  let attempt = 0;
+  while (true) {
+    attempt++;
+    const start = Date.now();
+    const res = await fetch(url);
+    const durationMs = Date.now() - start;
+    const body = await res.json();
+    if (res.ok) {
+      console.log(JSON.stringify({
+        ts: new Date().toISOString(),
+        kind: "meta.query",
+        durationMs,
+        rows: body.data?.length ?? 0,
+        attempt,
+      }));
+      return body;
+    }
     const err = body?.error || {};
+    const retryable = RETRYABLE_META_CODES.has(err.code) || res.status === 429 || res.status >= 500;
+    const exhausted = attempt >= config.meta.retryMaxAttempts;
     console.error(JSON.stringify({
       ts: new Date().toISOString(),
       kind: "meta.error",
@@ -36,19 +53,18 @@ async function metaFetch(url) {
       type: err.type,
       message: err.message,
       durationMs,
+      attempt,
+      retrying: retryable && !exhausted,
     }));
-    const e = new Error(`Meta API ${res.status}: ${err.message || "erro desconhecido"}`);
-    e.statusCode = res.status;
-    e.metaCode = err.code;
-    throw e;
+    if (!retryable || exhausted) {
+      const e = new Error(`Meta API ${res.status}: ${err.message || "erro desconhecido"}`);
+      e.statusCode = res.status;
+      e.metaCode = err.code;
+      throw e;
+    }
+    const backoff = config.meta.retryBackoffMs * Math.pow(2, attempt - 1);
+    await sleep(backoff);
   }
-  console.log(JSON.stringify({
-    ts: new Date().toISOString(),
-    kind: "meta.query",
-    durationMs,
-    rows: body.data?.length ?? 0,
-  }));
-  return body;
 }
 
 export async function fetchPaginated(path, params = {}) {
@@ -59,6 +75,7 @@ export async function fetchPaginated(path, params = {}) {
     const body = await metaFetch(url);
     if (body.data) all.push(...body.data);
     url = body.paging?.next || null;
+    if (url && config.meta.rateLimitMs > 0) await sleep(config.meta.rateLimitMs);
   }
   return all;
 }
