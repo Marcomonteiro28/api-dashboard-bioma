@@ -55,8 +55,10 @@ export async function fetchAllPaginated(path, dataKey, extraParams = {}) {
   const all = [];
   let offset = 0;
   const limit = config.ac.pageLimit;
+  // Ordem estavel evita rows duplicados quando deals novos entram no AC durante a paginacao
+  const params = { "orders[id]": "ASC", ...extraParams };
   while (true) {
-    const body = await acFetch(path, { ...extraParams, limit, offset });
+    const body = await acFetch(path, { ...params, limit, offset });
     const items = body[dataKey] || [];
     all.push(...items);
     const total = parseInt(body.meta?.total || "0", 10);
@@ -64,5 +66,11 @@ export async function fetchAllPaginated(path, dataKey, extraParams = {}) {
     if (items.length === 0 || offset >= total) break;
     await sleep(config.ac.rateLimitMs);
   }
-  return all;
+  // Defense-in-depth: deduplica por id caso ordem nao estabilize 100%
+  const seen = new Map();
+  for (const item of all) {
+    const id = String(item.id || "");
+    if (id && !seen.has(id)) seen.set(id, item);
+  }
+  return [...seen.values()];
 }
