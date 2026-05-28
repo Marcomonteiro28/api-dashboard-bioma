@@ -40,3 +40,9 @@ yarn-error.log*
 
 # Sync logs do cron
 logs/
+
+# Web build artifacts
+web/dist/
+web/dist-types/
+web/*.tsbuildinfo
+web/**/*.tsbuildinfo
