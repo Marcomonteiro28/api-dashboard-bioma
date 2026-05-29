@@ -54,20 +54,30 @@ gcloud projects add-iam-policy-binding "${PROJECT}" \
 
 echo ""
 echo "==> 2.2/5 Permissions BQ datasets..."
-bq add-iam-policy-binding \
-  --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/bigquery.dataViewer" \
-  "${PROJECT}:crm_marts" >/dev/null
+# Tenta dataset-level (mais granular). Se falhar (Kondado pode ser dona de
+# crm_marts/raw_data e nao deixar voce mexer no IAM deles), faz fallback
+# pra project-level que cobre o mesmo escopo.
+bq_grant() {
+  local ds="$1"
+  local role="$2"
+  if bq add-iam-policy-binding \
+      --member="serviceAccount:${SA_EMAIL}" \
+      --role="${role}" \
+      "${PROJECT}:${ds}" 2>/dev/null; then
+    echo "  ok dataset-level: ${ds} ${role}"
+  else
+    echo "  WARN dataset-level falhou em ${ds} (provavelmente owner outro), tentando project-level..."
+    gcloud projects add-iam-policy-binding "${PROJECT}" \
+      --member="serviceAccount:${SA_EMAIL}" \
+      --role="${role}" \
+      --condition=None >/dev/null
+    echo "  ok project-level: ${role}"
+  fi
+}
 
-bq add-iam-policy-binding \
-  --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/bigquery.dataViewer" \
-  "${PROJECT}:raw_data" >/dev/null
-
-bq add-iam-policy-binding \
-  --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/bigquery.dataEditor" \
-  "${PROJECT}:bioma_meta" >/dev/null
+bq_grant "crm_marts" "roles/bigquery.dataViewer"
+bq_grant "raw_data" "roles/bigquery.dataViewer"
+bq_grant "bioma_meta" "roles/bigquery.dataEditor"
 
 echo ""
 echo "==> 3/5 Criando Artifact Registry repo 'dashboard'..."
