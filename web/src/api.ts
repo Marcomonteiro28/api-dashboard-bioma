@@ -11,8 +11,12 @@ import type {
   WeeklyLeadsRow,
 } from "./types";
 
+// Em prod (Cloudflare Pages) define VITE_API_BASE_URL pro Cloud Run.
+// Em dev local fica vazio e o proxy do vite.config.ts redireciona /api -> :3001.
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
 async function get<T>(path: string): Promise<T> {
-  const r = await fetch(path);
+  const r = await fetch(API_BASE + path, { credentials: "include" });
   if (!r.ok) throw new Error(`API ${r.status}: ${path}`);
   return r.json();
 }

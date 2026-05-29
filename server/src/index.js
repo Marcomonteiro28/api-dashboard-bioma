@@ -15,6 +15,7 @@ import { leadDetailRouter } from "./routes/leadDetail.js";
 import { creativeFunnelRouter } from "./routes/creativeFunnel.js";
 import { subOrigensRouter } from "./routes/subOrigens.js";
 import { leadsWeeklyRouter } from "./routes/leadsWeekly.js";
+import { jobsRouter } from "./routes/jobs.js";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use(leadDetailRouter);
 app.use(creativeFunnelRouter);
 app.use(subOrigensRouter);
 app.use(leadsWeeklyRouter);
+app.use(jobsRouter);
 
 app.use(errorHandler);
 

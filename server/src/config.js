@@ -9,10 +9,16 @@ const required = (name) => {
   return v;
 };
 
+// Em producao (Cloud Run) o token interno autoriza Cloud Scheduler a
+// disparar /jobs/sync-*. Em dev local nao definir essa var basta.
+const INTERNAL_JOB_TOKEN = process.env.INTERNAL_JOB_TOKEN || null;
+
 const splitCsv = (v) => v.split(",").map((s) => s.trim()).filter(Boolean);
 
 export const config = {
   port: parseInt(process.env.PORT || "3001", 10),
+  env: process.env.NODE_ENV || "development",
+  internalJobToken: INTERNAL_JOB_TOKEN,
   project: required("GCP_PROJECT_ID"),
   dataset: process.env.BQ_DATASET || "crm_marts",
   location: process.env.BQ_LOCATION || "southamerica-east1",
