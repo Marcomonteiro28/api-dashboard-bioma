@@ -19,11 +19,48 @@ Runbook pra subir o dashboard em produção atendendo time RazConsulting + Bioma
 
 **Domínio:** `bioma.razconsulting.com.br` (subdomínio sob razconsulting.com.br)
 
+## CI/CD — push pra master deploya tudo
+
+Após o setup inicial (~30min), o fluxo fica:
+```
+git push origin master
+       │
+       ├──► GitHub Actions  (deploy-cloud-run.yml)
+       │       └─ docker build + push + gcloud run deploy
+       │
+       └──► Cloudflare Pages  (conectado ao repo)
+               └─ vite build + servir estático
+```
+
 ---
 
-## Fase Cloud-B — Setup GCP (uma vez)
+## Fase Cloud-B — Setup GCP (uma vez, ~5min)
 
-### 1. Habilitar APIs no projeto `kondado-bioma`
+### Caminho rápido: script faz tudo de uma vez
+
+```bash
+bash scripts/setup-gcp.sh kondado-bioma <SEU-USUARIO-GH>/api-dashboard-bioma
+```
+
+O script:
+- Habilita 6 APIs (run, build, artifact registry, scheduler, secret manager, iam credentials)
+- Cria SA `dashboard-cloud-run` + permissions BQ + Secret Manager
+- Cria Artifact Registry `dashboard`
+- Cria 3 secrets (meta/AC vazios pra preencher, internal-job-token random)
+- Configura Workload Identity Federation pro GitHub Actions
+- Imprime os 3 GitHub Secrets a configurar
+
+**Depois do script**, preencha os 2 tokens reais:
+```bash
+echo -n "<META_ACCESS_TOKEN>" | gcloud secrets versions add meta-access-token --data-file=-
+echo -n "<AC_API_TOKEN>"      | gcloud secrets versions add ac-api-token --data-file=-
+```
+
+Pra rotacionar depois, mesmo comando — gera nova versão e o Cloud Run pega na próxima request.
+
+### Caminho passo-a-passo (opcional, se preferir não rodar o script)
+
+#### 1. Habilitar APIs no projeto `kondado-bioma`
 
 ```bash
 gcloud config set project kondado-bioma
@@ -33,10 +70,11 @@ gcloud services enable \
   cloudbuild.googleapis.com \
   artifactregistry.googleapis.com \
   cloudscheduler.googleapis.com \
-  secretmanager.googleapis.com
+  secretmanager.googleapis.com \
+  iamcredentials.googleapis.com
 ```
 
-### 2. Criar Service Account pro Cloud Run
+#### 2. Criar Service Account pro Cloud Run
 
 ```bash
 gcloud iam service-accounts create dashboard-cloud-run \
@@ -45,7 +83,7 @@ gcloud iam service-accounts create dashboard-cloud-run \
 SA="dashboard-cloud-run@kondado-bioma.iam.gserviceaccount.com"
 ```
 
-### 3. Dar permissões ao SA
+#### 3. Dar permissões ao SA
 
 ```bash
 # Roda jobs BigQuery
@@ -99,12 +137,14 @@ echo -n "<NOVO_TOKEN>" | gcloud secrets versions add meta-access-token --data-fi
 
 ---
 
-## Fase Cloud-A já feita no código
+## Fase Cloud-A + Cloud-F já feitas no código
 
 - `Dockerfile` na raiz
 - `server/src/routes/jobs.js` com `/jobs/sync-ac`, `/jobs/sync-meta`, `/jobs/apply-views`, `/jobs/sync-all`
 - Auth via `X-Internal-Job-Token` header (validado contra `INTERNAL_JOB_TOKEN` env var)
 - Frontend lê `VITE_API_BASE_URL` (vazio em dev = usa proxy Vite)
+- `.github/workflows/deploy-cloud-run.yml` — CI/CD que builda e deploya no push pra master
+- `scripts/setup-gcp.sh` — automatiza setup GCP
 
 ---
 
@@ -143,6 +183,16 @@ gcloud run deploy dashboard-api \
 ```
 
 Anota a URL retornada (algo como `https://dashboard-api-xxxxx-uc.a.run.app`).
+
+### 6.1 GitHub Secrets pro CI/CD
+
+Em `https://github.com/<owner>/api-dashboard-bioma/settings/secrets/actions`, adicionar:
+
+- `GCP_PROJECT` = `kondado-bioma`
+- `WIF_PROVIDER` = `projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/github-actions/providers/github` (impresso pelo setup-gcp.sh)
+- `WIF_SERVICE_ACCOUNT` = `dashboard-cloud-run@kondado-bioma.iam.gserviceaccount.com`
+
+A partir desse ponto, **`git push origin master` deploya backend automaticamente**.
 
 ### 7. Permitir que Cloudflare invoque (público pro frontend)
 
