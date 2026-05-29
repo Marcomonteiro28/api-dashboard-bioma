@@ -1,4 +1,5 @@
 import { tbl } from "../config.js";
+import { applySubOrigensFilter } from "./performance.js";
 
 export function buildLeadsWeeklyQuery({ from, to, emps, statuses, subOrigens }) {
   const conds = ["DATE(deal_created_at) BETWEEN @from AND @to"];
@@ -15,11 +16,7 @@ export function buildLeadsWeeklyQuery({ from, to, emps, statuses, subOrigens }) 
     params.statuses = statuses;
     types.statuses = ["INT64"];
   }
-  if (subOrigens) {
-    conds.push("sub_origem IN UNNEST(@sub_origens)");
-    params.sub_origens = subOrigens;
-    types.sub_origens = ["STRING"];
-  }
+  applySubOrigensFilter(conds, params, types, subOrigens);
 
   const sql = `
     SELECT

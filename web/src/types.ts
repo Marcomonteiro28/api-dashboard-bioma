@@ -14,6 +14,21 @@ export interface PerformanceEmp {
   receita_ganha: number;
 }
 
+export interface PerformanceTotals {
+  leads: number;
+  contatos_unicos: number;
+  aguardando_retorno: number;
+  qualificados: number;
+  agendamentos: number;
+  transferidos: number;
+  visitas_confirmadas: number;
+  visitas: number;
+  negociacoes: number;
+  propostas: number;
+  ganhos: number;
+  receita_ganha: number;
+}
+
 export interface StatusRow {
   status: string;
   stage_rank: number;

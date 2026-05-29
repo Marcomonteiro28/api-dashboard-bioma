@@ -1,5 +1,6 @@
 import type {
   PerformanceEmp,
+  PerformanceTotals,
   StatusRow,
   AttributionEmp,
   AttributionCreative,
@@ -60,9 +61,10 @@ export const api = {
       meta: { from: string; to: string; count: number };
     }>(`/api/leads-weekly?${build(p)}`),
   performanceEmp: (p: Params) =>
-    get<{ data: PerformanceEmp[]; meta: { from: string; to: string; count: number } }>(
-      `/api/performance-emp?${build(p)}`
-    ),
+    get<{
+      data: PerformanceEmp[];
+      meta: { from: string; to: string; count: number; totals: PerformanceTotals | null };
+    }>(`/api/performance-emp?${build(p)}`),
   attributionEmp: (p: Params) =>
     get<{ data: AttributionEmp[]; meta: { from: string; to: string; count: number } }>(
       `/api/attribution-emp?${build(p)}`

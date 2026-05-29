@@ -8,6 +8,7 @@ import {
 } from "./utils/format";
 import type {
   PerformanceEmp,
+  PerformanceTotals,
   StatusRow,
   AttributionEmp,
   AttributionCreative,
@@ -42,6 +43,21 @@ interface Sums {
   negociacoes: number;
   propostas: number;
   ganhos: number;
+}
+
+function mapTotals(t: PerformanceTotals): Sums {
+  return {
+    leads: Number(t.leads) || 0,
+    aguardando_retorno: Number(t.aguardando_retorno) || 0,
+    qualificados: Number(t.qualificados) || 0,
+    agendamentos: Number(t.agendamentos) || 0,
+    transferidos: Number(t.transferidos) || 0,
+    visitas_confirmadas: Number(t.visitas_confirmadas) || 0,
+    visitas: Number(t.visitas) || 0,
+    negociacoes: Number(t.negociacoes) || 0,
+    propostas: Number(t.propostas) || 0,
+    ganhos: Number(t.ganhos) || 0,
+  };
 }
 
 function sumEmpData(arr: PerformanceEmp[]): Sums {
@@ -81,6 +97,8 @@ export function App() {
   const [statusData, setStatusData] = useState<StatusRow[]>([]);
   const [perf, setPerf] = useState<PerformanceEmp[]>([]);
   const [perfPrev, setPerfPrev] = useState<PerformanceEmp[]>([]);
+  const [totals, setTotals] = useState<PerformanceTotals | null>(null);
+  const [totalsPrev, setTotalsPrev] = useState<PerformanceTotals | null>(null);
   const [attrib, setAttrib] = useState<AttributionEmp[]>([]);
   const [creative, setCreative] = useState<AttributionCreative[]>([]);
   const [creativeFunnel, setCreativeFunnel] = useState<CreativeFunnelRow[]>([]);
@@ -145,10 +163,11 @@ export function App() {
         }
       };
       const empty = { data: [], meta: { from, to, count: 0 } };
+      const emptyPerf = { data: [], meta: { from, to, count: 0, totals: null } };
       const emptyFunnel = { data: [], meta: { from, to, count: 0, min_leads: MIN_LEADS } };
       const [cur, prv, attribR, creativeR, funnelR, weeklyR] = await Promise.all([
-        safeFetch(api.performanceEmp(params), empty),
-        safeFetch(api.performanceEmp(prevParams), empty),
+        safeFetch(api.performanceEmp(params), emptyPerf),
+        safeFetch(api.performanceEmp(prevParams), emptyPerf),
         safeFetch(api.attributionEmp(params), empty),
         safeFetch(api.attributionCreative(params), empty),
         safeFetch(api.creativeFunnel({ ...params, min_leads: MIN_LEADS }), emptyFunnel),
@@ -157,6 +176,8 @@ export function App() {
       if (cancelled) return;
       setPerf(cur.data);
       setPerfPrev(prv.data);
+      setTotals(cur.meta?.totals ?? null);
+      setTotalsPrev(prv.meta?.totals ?? null);
       setAttrib(attribR.data);
       setCreative(creativeR.data);
       setCreativeFunnel(funnelR.data);
@@ -177,8 +198,24 @@ export function App() {
     state.allSubOrigens,
   ]);
 
-  const cur = useMemo(() => sumEmpData(perf), [perf]);
-  const prev = useMemo(() => sumEmpData(perfPrev), [perfPrev]);
+  // Prefere totals (COUNT DISTINCT no nivel da janela inteira) quando disponivel.
+  // Fallback pra sumEmpData (soma per empreendimento) so se o backend nao retornou totals.
+  // Necessario porque stg_crm_deals tem deals com interesse em multiplos empreendimentos,
+  // entao SUM per emp infla o numero (244) em relacao ao distinct real (234).
+  const cur = useMemo(
+    () =>
+      totals
+        ? { ...sumEmpData(perf), ...mapTotals(totals) }
+        : sumEmpData(perf),
+    [perf, totals]
+  );
+  const prev = useMemo(
+    () =>
+      totalsPrev
+        ? { ...sumEmpData(perfPrev), ...mapTotals(totalsPrev) }
+        : sumEmpData(perfPrev),
+    [perfPrev, totalsPrev]
+  );
   const porEmpDiag = useMemo(() => buildPorEmp(perf), [perf]);
   const empRows = useMemo(() => buildEmpRows(perf), [perf]);
 

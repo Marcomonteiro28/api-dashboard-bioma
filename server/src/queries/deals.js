@@ -1,4 +1,5 @@
 import { tbl } from "../config.js";
+import { applySubOrigensFilter } from "./performance.js";
 
 const ESTAGIO_TO_FLAG = {
   leads: null,
@@ -32,11 +33,7 @@ export function buildDealsQuery({ from, to, emps, statuses, estagio, limit, subO
     params.statuses = statuses;
     types.statuses = ["INT64"];
   }
-  if (subOrigens) {
-    conds.push("sub_origem IN UNNEST(@sub_origens)");
-    params.sub_origens = subOrigens;
-    types.sub_origens = ["STRING"];
-  }
+  applySubOrigensFilter(conds, params, types, subOrigens);
   const estagioCondition = ESTAGIO_TO_FLAG[estagio];
   if (estagioCondition) conds.push(estagioCondition);
 

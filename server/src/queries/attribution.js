@@ -1,4 +1,5 @@
 import { config } from "../config.js";
+import { applySubOrigensFilter } from "./performance.js";
 
 const crmTbl = "`" + config.project + "." + config.dataset + ".stg_crm_deals`";
 const metaView = "`" + config.project + "." + config.meta.dataset + ".vw_meta_spend_daily_emp`";
@@ -18,11 +19,7 @@ export function buildAttributionQuery({ from, to, emps, statuses, subOrigens }) 
     params.statuses = statuses;
     types.statuses = ["INT64"];
   }
-  if (subOrigens) {
-    crmConds.push("sub_origem IN UNNEST(@sub_origens)");
-    params.sub_origens = subOrigens;
-    types.sub_origens = ["STRING"];
-  }
+  applySubOrigensFilter(crmConds, params, types, subOrigens);
 
   const metaEmpFilter = emps ? "WHERE empreendimento IN UNNEST(@emps)" : "";
 
