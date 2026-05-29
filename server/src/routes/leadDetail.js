@@ -1,6 +1,15 @@
 import { Router } from "express";
 import { runQuery, cached } from "../bq.js";
+import { config } from "../config.js";
 import { buildLeadQuery, buildCreativeMatchQuery } from "../queries/leadDetail.js";
+
+// Deriva URL do app do AC a partir do API URL (ex: https://biomainc.api-us1.com -> https://biomainc.activehosted.com)
+function acAppUrl(dealId) {
+  if (!config.ac?.apiUrl) return null;
+  const m = config.ac.apiUrl.match(/^https?:\/\/([^.]+)\./);
+  if (!m) return null;
+  return `https://${m[1]}.activehosted.com/app/deals/${dealId}`;
+}
 
 export const leadDetailRouter = Router();
 
@@ -33,7 +42,7 @@ leadDetailRouter.get("/api/leads/:dealId", async (req, res, next) => {
       throw e;
     }
 
-    res.json(result);
+    res.json({ ...result, ac_deal_url: acAppUrl(dealId) });
   } catch (err) {
     next(err);
   }

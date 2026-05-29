@@ -12,6 +12,7 @@ import type {
   AttributionEmp,
   AttributionCreative,
   CreativeFunnelRow,
+  WeeklyLeadsRow,
   Estagio,
   TabKey,
 } from "./types";
@@ -26,6 +27,7 @@ import { EmpTable, buildEmpRows } from "./components/EmpTable";
 import { AttributionEmpBlock } from "./components/AttributionEmp";
 import { CreativeAttributionBlock } from "./components/CreativeAttribution";
 import { CreativeFunnelDash } from "./components/CreativeFunnelDash";
+import { WeeklyLeadsChart } from "./components/WeeklyLeadsChart";
 import { DealsModal, type DealsModalProps } from "./components/DealsModal";
 import { LeadCreativeModal } from "./components/LeadCreativeModal";
 
@@ -82,20 +84,26 @@ export function App() {
   const [attrib, setAttrib] = useState<AttributionEmp[]>([]);
   const [creative, setCreative] = useState<AttributionCreative[]>([]);
   const [creativeFunnel, setCreativeFunnel] = useState<CreativeFunnelRow[]>([]);
+  const [weekly, setWeekly] = useState<WeeklyLeadsRow[]>([]);
   const MIN_LEADS = 5;
   const [refreshing, setRefreshing] = useState(false);
   const [modal, setModal] = useState<DealsModalProps | null>(null);
   const [leadModalId, setLeadModalId] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("funil");
 
-  // Bootstrap: empreendimentos + status atual
+  // Bootstrap: empreendimentos + sub-origens + status atual
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [emps, st] = await Promise.all([api.empreendimentos(), api.statusAtual()]);
+        const [emps, subs, st] = await Promise.all([
+          api.empreendimentos(),
+          api.subOrigens(),
+          api.statusAtual(),
+        ]);
         if (cancelled) return;
         dispatch({ type: "SET_ALL_EMPS", emps: emps.data });
+        dispatch({ type: "SET_ALL_SUB_ORIGENS", subOrigens: subs.data });
         setStatusData(st.data);
         setBootLoading(false);
       } catch (e) {
@@ -122,6 +130,8 @@ export function App() {
       empreendimentos: state.selectedEmps,
       allEmps: state.allEmps,
       status: state.selectedStatus,
+      subOrigens: state.selectedSubOrigens,
+      allSubOrigens: state.allSubOrigens,
     };
     const prevParams = { ...params, from: prev.from, to: prev.to };
 
@@ -136,12 +146,13 @@ export function App() {
       };
       const empty = { data: [], meta: { from, to, count: 0 } };
       const emptyFunnel = { data: [], meta: { from, to, count: 0, min_leads: MIN_LEADS } };
-      const [cur, prv, attribR, creativeR, funnelR] = await Promise.all([
+      const [cur, prv, attribR, creativeR, funnelR, weeklyR] = await Promise.all([
         safeFetch(api.performanceEmp(params), empty),
         safeFetch(api.performanceEmp(prevParams), empty),
         safeFetch(api.attributionEmp(params), empty),
         safeFetch(api.attributionCreative(params), empty),
         safeFetch(api.creativeFunnel({ ...params, min_leads: MIN_LEADS }), emptyFunnel),
+        safeFetch(api.leadsWeekly(params), empty),
       ]);
       if (cancelled) return;
       setPerf(cur.data);
@@ -149,6 +160,7 @@ export function App() {
       setAttrib(attribR.data);
       setCreative(creativeR.data);
       setCreativeFunnel(funnelR.data);
+      setWeekly(weeklyR.data);
       setRefreshing(false);
     })();
     return () => {
@@ -160,7 +172,9 @@ export function App() {
     state.customTo,
     state.selectedEmps,
     state.selectedStatus,
+    state.selectedSubOrigens,
     state.allEmps,
+    state.allSubOrigens,
   ]);
 
   const cur = useMemo(() => sumEmpData(perf), [perf]);
@@ -197,6 +211,8 @@ export function App() {
       empreendimentos: state.selectedEmps,
       allEmps: state.allEmps,
       status: state.selectedStatus,
+      subOrigens: state.selectedSubOrigens,
+      allSubOrigens: state.allSubOrigens,
       estagio: estagio !== "leads" ? estagio : undefined,
       onClose: () => setModal(null),
       onOpenLead,
@@ -227,6 +243,8 @@ export function App() {
       empreendimentos: state.selectedEmps,
       allEmps: state.allEmps,
       status: state.selectedStatus,
+      subOrigens: state.selectedSubOrigens,
+      allSubOrigens: state.allSubOrigens,
       onClose: () => setModal(null),
       onOpenLead,
     });
@@ -266,6 +284,7 @@ export function App() {
             <>
               <KpiGrid cur={cur} prev={prev} onOpenStage={openModalEstagio} />
               <Diagnostics porEmp={porEmpDiag} />
+              <WeeklyLeadsChart data={weekly} periodLabel={periodLabel} />
               <div className="row two-col">
                 <Funnel stages={funnelStages} periodLabel={periodLabel} />
                 <StatusBars rows={statusData} />

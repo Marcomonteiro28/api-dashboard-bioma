@@ -8,6 +8,8 @@ export interface AppState {
   allEmps: string[];
   selectedEmps: string[];
   selectedStatus: number[];
+  allSubOrigens: string[];
+  selectedSubOrigens: string[];
 }
 
 export type AppAction =
@@ -17,7 +19,10 @@ export type AppAction =
   | { type: "TOGGLE_EMP"; emp: string }
   | { type: "SET_EMPS"; emps: string[] }
   | { type: "TOGGLE_STATUS"; status: number }
-  | { type: "SET_STATUS"; status: number[] };
+  | { type: "SET_STATUS"; status: number[] }
+  | { type: "SET_ALL_SUB_ORIGENS"; subOrigens: string[] }
+  | { type: "TOGGLE_SUB_ORIGEM"; subOrigem: string }
+  | { type: "SET_SUB_ORIGENS"; subOrigens: string[] };
 
 export const initialState: AppState = {
   range: "30d",
@@ -26,6 +31,8 @@ export const initialState: AppState = {
   allEmps: [],
   selectedEmps: [],
   selectedStatus: [0, 1, 2],
+  allSubOrigens: [],
+  selectedSubOrigens: [],
 };
 
 export function reducer(state: AppState, action: AppAction): AppState {
@@ -53,6 +60,17 @@ export function reducer(state: AppState, action: AppAction): AppState {
       return { ...state, selectedStatus: [...state.selectedStatus, action.status] };
     case "SET_STATUS":
       return { ...state, selectedStatus: action.status };
+    case "SET_ALL_SUB_ORIGENS":
+      return { ...state, allSubOrigens: action.subOrigens, selectedSubOrigens: [...action.subOrigens] };
+    case "TOGGLE_SUB_ORIGEM":
+      return {
+        ...state,
+        selectedSubOrigens: state.selectedSubOrigens.includes(action.subOrigem)
+          ? state.selectedSubOrigens.filter((s) => s !== action.subOrigem)
+          : [...state.selectedSubOrigens, action.subOrigem],
+      };
+    case "SET_SUB_ORIGENS":
+      return { ...state, selectedSubOrigens: action.subOrigens };
     default:
       return state;
   }

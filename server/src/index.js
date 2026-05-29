@@ -13,6 +13,8 @@ import { attributionRouter } from "./routes/attribution.js";
 import { creativeAttributionRouter } from "./routes/creativeAttribution.js";
 import { leadDetailRouter } from "./routes/leadDetail.js";
 import { creativeFunnelRouter } from "./routes/creativeFunnel.js";
+import { subOrigensRouter } from "./routes/subOrigens.js";
+import { leadsWeeklyRouter } from "./routes/leadsWeekly.js";
 
 const app = express();
 
@@ -37,6 +39,8 @@ app.use(attributionRouter);
 app.use(creativeAttributionRouter);
 app.use(leadDetailRouter);
 app.use(creativeFunnelRouter);
+app.use(subOrigensRouter);
+app.use(leadsWeeklyRouter);
 
 app.use(errorHandler);
 

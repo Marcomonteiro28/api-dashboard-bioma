@@ -40,6 +40,10 @@ export function Filters({ onViewData }: { onViewData: () => void }) {
     extra: <span className={`status-pill s${s.value}`} />,
   }));
   const empItems: DropdownOption<string>[] = state.allEmps.map((e) => ({ value: e, label: e }));
+  const subOrigemItems: DropdownOption<string>[] = state.allSubOrigens.map((s) => ({
+    value: s,
+    label: s,
+  }));
 
   const statusTrigger = (() => {
     if (state.selectedStatus.length === STATUS_OPTIONS.length)
@@ -72,6 +76,24 @@ export function Filters({ onViewData }: { onViewData: () => void }) {
     return (
       <>
         <span className="count">{state.selectedEmps.length}</span> empreendimentos
+      </>
+    );
+  })();
+
+  const subOrigemTrigger = (() => {
+    if (state.allSubOrigens.length === 0) return "carregando…";
+    if (state.selectedSubOrigens.length === state.allSubOrigens.length)
+      return (
+        <>
+          <span className="count">{state.allSubOrigens.length}</span> sub-origens
+        </>
+      );
+    if (state.selectedSubOrigens.length === 0)
+      return <><span className="count">0</span> sub-origens</>;
+    if (state.selectedSubOrigens.length <= 2) return state.selectedSubOrigens.join(", ");
+    return (
+      <>
+        <span className="count">{state.selectedSubOrigens.length}</span> sub-origens
       </>
     );
   })();
@@ -123,6 +145,23 @@ export function Filters({ onViewData }: { onViewData: () => void }) {
           onAll={() => dispatch({ type: "SET_EMPS", emps: [...state.allEmps] })}
           onNone={() => dispatch({ type: "SET_EMPS", emps: [] })}
           triggerText={empsTrigger}
+        />
+      </div>
+      <div className="divider" />
+      <div className="filter-group">
+        <span
+          className="filter-label"
+          title="Marketing = leads digitais (Meta, Google, Site). Placa/Telefone/Indicação = leads offline."
+        >
+          Sub-origem:
+        </span>
+        <Dropdown
+          items={subOrigemItems}
+          isSelected={(o) => state.selectedSubOrigens.includes(o.value)}
+          onToggle={(v) => dispatch({ type: "TOGGLE_SUB_ORIGEM", subOrigem: v })}
+          onAll={() => dispatch({ type: "SET_SUB_ORIGENS", subOrigens: [...state.allSubOrigens] })}
+          onNone={() => dispatch({ type: "SET_SUB_ORIGENS", subOrigens: [] })}
+          triggerText={subOrigemTrigger}
         />
       </div>
       <button className="btn-view-data" onClick={onViewData}>

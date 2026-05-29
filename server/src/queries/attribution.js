@@ -3,7 +3,7 @@ import { config } from "../config.js";
 const crmTbl = "`" + config.project + "." + config.dataset + ".stg_crm_deals`";
 const metaView = "`" + config.project + "." + config.meta.dataset + ".vw_meta_spend_daily_emp`";
 
-export function buildAttributionQuery({ from, to, emps, statuses }) {
+export function buildAttributionQuery({ from, to, emps, statuses, subOrigens }) {
   const crmConds = ["DATE(deal_created_at) BETWEEN @from AND @to"];
   const params = { from, to };
   const types = {};
@@ -17,6 +17,11 @@ export function buildAttributionQuery({ from, to, emps, statuses }) {
     crmConds.push("CAST(deal_status AS INT64) IN UNNEST(@statuses)");
     params.statuses = statuses;
     types.statuses = ["INT64"];
+  }
+  if (subOrigens) {
+    crmConds.push("sub_origem IN UNNEST(@sub_origens)");
+    params.sub_origens = subOrigens;
+    types.sub_origens = ["STRING"];
   }
 
   const metaEmpFilter = emps ? "WHERE empreendimento IN UNNEST(@emps)" : "";

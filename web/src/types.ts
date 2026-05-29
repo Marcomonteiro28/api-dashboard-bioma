@@ -155,6 +155,15 @@ export interface LeadDetailCreative {
 export interface LeadDetailResponse {
   lead: LeadDetailLead;
   creative: LeadDetailCreative | null;
+  ac_deal_url: string | null;
+}
+
+export interface WeeklyLeadsRow {
+  semana: string;
+  leads: number;
+  qualificados: number;
+  visitas: number;
+  ganhos: number;
 }
 
 export type TabKey = "funil" | "marketing";

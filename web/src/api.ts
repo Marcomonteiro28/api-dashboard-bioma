@@ -7,6 +7,7 @@ import type {
   DealsMeta,
   LeadDetailResponse,
   CreativeFunnelRow,
+  WeeklyLeadsRow,
 } from "./types";
 
 async function get<T>(path: string): Promise<T> {
@@ -23,6 +24,8 @@ interface Params {
   status?: number[];
   estagio?: string;
   limit?: number;
+  subOrigens?: string[];
+  allSubOrigens?: string[];
 }
 
 function build(params: Params): string {
@@ -35,6 +38,13 @@ function build(params: Params): string {
   if (params.status && params.status.length < 3) {
     p.set("status", params.status.join(","));
   }
+  if (
+    params.subOrigens &&
+    params.allSubOrigens &&
+    params.subOrigens.length < params.allSubOrigens.length
+  ) {
+    p.set("sub_origens", params.subOrigens.join(","));
+  }
   if (params.estagio && params.estagio !== "leads") p.set("estagio", params.estagio);
   if (params.limit) p.set("limit", String(params.limit));
   return p.toString();
@@ -42,7 +52,13 @@ function build(params: Params): string {
 
 export const api = {
   empreendimentos: () => get<{ data: string[] }>("/api/empreendimentos"),
+  subOrigens: () => get<{ data: string[] }>("/api/sub-origens"),
   statusAtual: () => get<{ data: StatusRow[] }>("/api/status-atual"),
+  leadsWeekly: (p: Params) =>
+    get<{
+      data: WeeklyLeadsRow[];
+      meta: { from: string; to: string; count: number };
+    }>(`/api/leads-weekly?${build(p)}`),
   performanceEmp: (p: Params) =>
     get<{ data: PerformanceEmp[]; meta: { from: string; to: string; count: number } }>(
       `/api/performance-emp?${build(p)}`

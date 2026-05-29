@@ -44,6 +44,24 @@ export function parseEmpsFilter(req) {
   return arr;
 }
 
+export function parseSubOrigensFilter(req) {
+  if (!req.query.sub_origens) return null;
+  const arr = req.query.sub_origens
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (arr.length === 0) return null;
+  if (arr.length > 30) {
+    throw httpError("Máximo 30 sub-origens por requisição");
+  }
+  for (const e of arr) {
+    if (e.length > 100) {
+      throw httpError("Sub-origem com valor inválido (muito longo)");
+    }
+  }
+  return arr;
+}
+
 export function parseStatusFilter(req) {
   if (!req.query.status) return null;
   const valid = req.query.status

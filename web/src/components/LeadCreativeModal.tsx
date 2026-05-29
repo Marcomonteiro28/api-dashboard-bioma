@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { LeadDetailResponse, MatchType } from "../types";
 
@@ -25,6 +25,7 @@ export function LeadCreativeModal({ dealId, onClose }: LeadCreativeModalProps) {
   const [data, setData] = useState<LeadDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const imgFallbackTried = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,9 +72,22 @@ export function LeadCreativeModal({ dealId, onClose }: LeadCreativeModalProps) {
               Deal #{dealId} · {data?.lead?.empreendimento || "—"}
             </p>
           </div>
-          <button className="modal-close" onClick={onClose}>
-            ×
-          </button>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {data?.ac_deal_url && (
+              <a
+                className="btn-ac-link"
+                href={data.ac_deal_url}
+                target="_blank"
+                rel="noreferrer"
+                title="Abrir deal no ActiveCampaign"
+              >
+                Abrir no AC ↗
+              </a>
+            )}
+            <button className="modal-close" onClick={onClose}>
+              ×
+            </button>
+          </div>
         </div>
         <div className="modal-body lead-modal-body">
           {loading && <div className="modal-loading">Carregando dados do lead...</div>}
@@ -194,11 +208,35 @@ export function LeadCreativeModal({ dealId, onClose }: LeadCreativeModalProps) {
                         }
                         alt="Criativo"
                         loading="lazy"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (
+                            !imgFallbackTried.current &&
+                            data.creative?.creative_thumbnail_url &&
+                            img.src !== data.creative.creative_thumbnail_url
+                          ) {
+                            imgFallbackTried.current = true;
+                            img.src = data.creative.creative_thumbnail_url;
+                          } else {
+                            img.style.display = "none";
+                            const placeholder = img.nextElementSibling as HTMLElement | null;
+                            if (placeholder) placeholder.style.display = "flex";
+                          }
+                        }}
                       />
                     ) : data.creative.creative_video_id ? (
                       <div className="creative-image creative-placeholder">🎬 Vídeo</div>
                     ) : (
                       <div className="creative-image creative-placeholder">Sem preview</div>
+                    )}
+                    {(data.creative.creative_image_url ||
+                      data.creative.creative_thumbnail_url) && (
+                      <div
+                        className="creative-image creative-placeholder"
+                        style={{ display: "none" }}
+                      >
+                        Imagem indisponível (URL expirada no CDN do Meta)
+                      </div>
                     )}
 
                     {data.creative.creative_title && (

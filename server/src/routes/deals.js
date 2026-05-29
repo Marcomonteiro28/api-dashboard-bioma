@@ -5,6 +5,7 @@ import {
   parseDateRange,
   parseEmpsFilter,
   parseStatusFilter,
+  parseSubOrigensFilter,
   parseLimit,
 } from "../lib/parseFilters.js";
 import { buildDealsQuery, isValidEstagio } from "../queries/deals.js";
@@ -16,6 +17,7 @@ dealsRouter.get("/api/deals", async (req, res, next) => {
     const { from, to } = parseDateRange(req);
     const emps = parseEmpsFilter(req);
     const statuses = parseStatusFilter(req);
+    const subOrigens = parseSubOrigensFilter(req);
     const estagio = (req.query.estagio || "").toLowerCase();
     if (!isValidEstagio(estagio)) {
       const e = new Error(`Estágio inválido: ${estagio}`);
@@ -24,9 +26,17 @@ dealsRouter.get("/api/deals", async (req, res, next) => {
     }
     const limit = parseLimit(req, 1000, 5000);
 
-    const key = makeCacheKey("deals", { from, to, emps, statuses, estagio, limit });
+    const key = makeCacheKey("deals", { from, to, emps, statuses, estagio, limit, subOrigens });
     const data = await cached(key, async () => {
-      const { sql, params, types } = buildDealsQuery({ from, to, emps, statuses, estagio, limit });
+      const { sql, params, types } = buildDealsQuery({
+        from,
+        to,
+        emps,
+        statuses,
+        subOrigens,
+        estagio,
+        limit,
+      });
       return runQuery(sql, params, types);
     });
 

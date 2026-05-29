@@ -17,7 +17,7 @@ export function isValidEstagio(estagio) {
   return estagio === "" || Object.prototype.hasOwnProperty.call(ESTAGIO_TO_FLAG, estagio);
 }
 
-export function buildDealsQuery({ from, to, emps, statuses, estagio, limit }) {
+export function buildDealsQuery({ from, to, emps, statuses, estagio, limit, subOrigens }) {
   const conds = ["DATE(deal_created_at) BETWEEN @from AND @to"];
   const params = { from, to, limit };
   const types = { limit: "INT64" };
@@ -31,6 +31,11 @@ export function buildDealsQuery({ from, to, emps, statuses, estagio, limit }) {
     conds.push("CAST(deal_status AS INT64) IN UNNEST(@statuses)");
     params.statuses = statuses;
     types.statuses = ["INT64"];
+  }
+  if (subOrigens) {
+    conds.push("sub_origem IN UNNEST(@sub_origens)");
+    params.sub_origens = subOrigens;
+    types.sub_origens = ["STRING"];
   }
   const estagioCondition = ESTAGIO_TO_FLAG[estagio];
   if (estagioCondition) conds.push(estagioCondition);

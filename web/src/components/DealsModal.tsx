@@ -10,6 +10,8 @@ export interface DealsModalProps {
   empreendimentos?: string[];
   allEmps: string[];
   status?: number[];
+  subOrigens?: string[];
+  allSubOrigens?: string[];
   estagio?: string;
   onClose: () => void;
   onOpenLead?: (dealId: string) => void;
@@ -32,6 +34,8 @@ export function DealsModal(props: DealsModalProps) {
         empreendimentos: props.empreendimentos,
         allEmps: props.allEmps,
         status: props.status,
+        subOrigens: props.subOrigens,
+        allSubOrigens: props.allSubOrigens,
         estagio: props.estagio,
         limit: 2000,
       })
@@ -49,7 +53,16 @@ export function DealsModal(props: DealsModalProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.from, props.to, props.empreendimentos, props.allEmps, props.status, props.estagio]);
+  }, [
+    props.from,
+    props.to,
+    props.empreendimentos,
+    props.allEmps,
+    props.status,
+    props.subOrigens,
+    props.allSubOrigens,
+    props.estagio,
+  ]);
 
   const statusBadge = (d: Deal) => {
     if (d.deal_status === 1) return <span className="badge badge-ganho">Ganho</span>;
