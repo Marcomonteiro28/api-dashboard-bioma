@@ -162,6 +162,10 @@ export interface LeadDetailCreative {
   creative_body: string | null;
   creative_image_url: string | null;
   creative_thumbnail_url: string | null;
+  creative_image_hash: string | null;
+  creative_image_url_hd: string | null;
+  creative_image_width: number | null;
+  creative_image_height: number | null;
   creative_link_url: string | null;
   creative_video_id: string | null;
   creative_cta: string | null;

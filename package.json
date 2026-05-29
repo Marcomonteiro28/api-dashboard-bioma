@@ -11,6 +11,7 @@
     "start": "node server/src/index.js",
     "dev": "node --watch server/src/index.js",
     "sync:meta": "node server/src/jobs/sync-meta.js",
+    "sync:meta-images": "node server/src/jobs/sync-adimages.js",
     "apply:meta-views": "node server/src/jobs/apply-meta-views.js",
     "import:csv-deals": "node server/src/jobs/import-csv-deals.js",
     "sync:ac": "node server/src/jobs/sync-ac.js",

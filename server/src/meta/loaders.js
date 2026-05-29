@@ -8,6 +8,7 @@ import {
   ADSET_FIELDS,
   AD_FIELDS,
   ADCREATIVE_FIELDS,
+  ADIMAGE_FIELDS,
   INSIGHT_FIELDS,
 } from "./schemas.js";
 
@@ -117,23 +118,60 @@ export async function syncCreatives() {
     const raw = await fetchPaginated(adAccountPath(acc, "/adcreatives"), {
       fields: ADCREATIVE_FIELDS.join(","),
     });
-    return raw.map((c) => ({
-      id: c.id,
-      account_id: acc,
-      name: c.name ?? null,
-      title: c.title ?? null,
-      body: c.body ?? null,
-      image_hash: c.image_hash ?? null,
-      image_url: c.image_url ?? null,
-      thumbnail_url: c.thumbnail_url ?? null,
-      video_id: c.video_id ?? null,
-      link_url: c.link_url ?? null,
-      call_to_action_type: c.call_to_action_type ?? null,
-      object_type: c.object_type ?? null,
-      synced_at: now,
-    }));
+    return raw.map((c) => {
+      // image_hash pode estar na raiz OU em object_story_spec.link_data/photo_data/video_data
+      const oss = c.object_story_spec || {};
+      const nestedHash =
+        oss?.link_data?.image_hash ||
+        oss?.photo_data?.image_hash ||
+        oss?.video_data?.image_hash ||
+        oss?.link_data?.child_attachments?.[0]?.image_hash ||
+        null;
+      return {
+        id: c.id,
+        account_id: acc,
+        name: c.name ?? null,
+        title: c.title ?? null,
+        body: c.body ?? null,
+        image_hash: c.image_hash ?? nestedHash,
+        image_url: c.image_url ?? null,
+        thumbnail_url: c.thumbnail_url ?? null,
+        video_id: c.video_id ?? oss?.video_data?.video_id ?? null,
+        link_url: c.link_url ?? oss?.link_data?.link ?? null,
+        call_to_action_type:
+          c.call_to_action_type ?? oss?.link_data?.call_to_action?.type ?? null,
+        object_type: c.object_type ?? null,
+        synced_at: now,
+      };
+    });
   });
   return replaceTableLoad(dataset.table("meta_adcreatives"), META_TABLES.meta_adcreatives, rows);
+}
+
+export async function syncAdImages() {
+  const now = new Date().toISOString();
+  const rows = await syncForEachAccount(async (acc) => {
+    const raw = await fetchPaginated(adAccountPath(acc, "/adimages"), {
+      fields: ADIMAGE_FIELDS.join(","),
+    });
+    return raw.map((img) => ({
+      hash: img.hash,
+      account_id: acc,
+      id: img.id ?? null,
+      name: img.name ?? null,
+      permalink_url: img.permalink_url ?? null,
+      url: img.url ?? null,
+      url_128: img.url_128 ?? null,
+      width: toInt(img.width),
+      height: toInt(img.height),
+      created_time: toIso(img.created_time),
+      synced_at: now,
+    })).filter((r) => r.hash);
+  });
+  // Dedup por hash (mesma imagem pode estar em multiplas contas)
+  const seen = new Map();
+  for (const r of rows) if (!seen.has(r.hash)) seen.set(r.hash, r);
+  return replaceTableLoad(dataset.table("meta_adimages"), META_TABLES.meta_adimages, [...seen.values()]);
 }
 
 export async function syncInsightsDaily() {

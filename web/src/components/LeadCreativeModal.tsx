@@ -25,7 +25,7 @@ export function LeadCreativeModal({ dealId, onClose }: LeadCreativeModalProps) {
   const [data, setData] = useState<LeadDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const imgFallbackTried = useRef(false);
+  const imgFallbackTried = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,47 +197,48 @@ export function LeadCreativeModal({ dealId, onClose }: LeadCreativeModalProps) {
                   </div>
                 ) : (
                   <div className="creative-card">
-                    {data.creative.creative_image_url ||
-                    data.creative.creative_thumbnail_url ? (
-                      <img
-                        className="creative-image"
-                        src={
-                          data.creative.creative_image_url ||
-                          data.creative.creative_thumbnail_url ||
-                          ""
-                        }
-                        alt="Criativo"
-                        loading="lazy"
-                        onError={(e) => {
-                          const img = e.currentTarget;
-                          if (
-                            !imgFallbackTried.current &&
-                            data.creative?.creative_thumbnail_url &&
-                            img.src !== data.creative.creative_thumbnail_url
-                          ) {
-                            imgFallbackTried.current = true;
-                            img.src = data.creative.creative_thumbnail_url;
-                          } else {
-                            img.style.display = "none";
-                            const placeholder = img.nextElementSibling as HTMLElement | null;
-                            if (placeholder) placeholder.style.display = "flex";
-                          }
-                        }}
-                      />
-                    ) : data.creative.creative_video_id ? (
-                      <div className="creative-image creative-placeholder">🎬 Vídeo</div>
-                    ) : (
-                      <div className="creative-image creative-placeholder">Sem preview</div>
-                    )}
-                    {(data.creative.creative_image_url ||
-                      data.creative.creative_thumbnail_url) && (
-                      <div
-                        className="creative-image creative-placeholder"
-                        style={{ display: "none" }}
-                      >
-                        Imagem indisponível (URL expirada no CDN do Meta)
-                      </div>
-                    )}
+                    {(() => {
+                      const hdSrc = data.creative.creative_image_url_hd;
+                      const lowSrc = data.creative.creative_image_url;
+                      const thumbSrc = data.creative.creative_thumbnail_url;
+                      const primarySrc = hdSrc || lowSrc || thumbSrc;
+                      if (primarySrc) {
+                        const fallbacks = [hdSrc, lowSrc, thumbSrc].filter(
+                          (s, i, a): s is string => !!s && a.indexOf(s) === i && s !== primarySrc
+                        );
+                        return (
+                          <>
+                            <img
+                              className="creative-image"
+                              src={primarySrc}
+                              alt="Criativo"
+                              loading="lazy"
+                              onError={(e) => {
+                                const img = e.currentTarget;
+                                if (imgFallbackTried.current >= fallbacks.length) {
+                                  img.style.display = "none";
+                                  const placeholder = img.nextElementSibling as HTMLElement | null;
+                                  if (placeholder) placeholder.style.display = "flex";
+                                  return;
+                                }
+                                img.src = fallbacks[imgFallbackTried.current];
+                                imgFallbackTried.current++;
+                              }}
+                            />
+                            <div
+                              className="creative-image creative-placeholder"
+                              style={{ display: "none" }}
+                            >
+                              Imagem indisponível (URL expirada no CDN do Meta)
+                            </div>
+                          </>
+                        );
+                      }
+                      if (data.creative.creative_video_id) {
+                        return <div className="creative-image creative-placeholder">🎬 Vídeo</div>;
+                      }
+                      return <div className="creative-image creative-placeholder">Sem preview</div>;
+                    })()}
 
                     {data.creative.creative_title && (
                       <div className="creative-title">{data.creative.creative_title}</div>

@@ -60,6 +60,19 @@ export const META_TABLES = {
     { name: "object_type", type: "STRING" },
     { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
   ],
+  meta_adimages: [
+    { name: "hash", type: "STRING", mode: "REQUIRED" },
+    { name: "account_id", type: "STRING" },
+    { name: "id", type: "STRING" },
+    { name: "name", type: "STRING" },
+    { name: "permalink_url", type: "STRING" },
+    { name: "url", type: "STRING" },
+    { name: "url_128", type: "STRING" },
+    { name: "width", type: "INT64" },
+    { name: "height", type: "INT64" },
+    { name: "created_time", type: "TIMESTAMP" },
+    { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
+  ],
   meta_insights_daily: [
     { name: "date_start", type: "DATE", mode: "REQUIRED" },
     { name: "ad_id", type: "STRING", mode: "REQUIRED" },
@@ -95,9 +108,14 @@ export const AD_FIELDS = [
   "creative", "created_time", "updated_time",
 ];
 
+export const ADIMAGE_FIELDS = [
+  "hash", "id", "name", "permalink_url", "url", "url_128", "width", "height", "created_time",
+];
+
 export const ADCREATIVE_FIELDS = [
   "id", "name", "title", "body", "image_hash", "image_url", "thumbnail_url",
   "video_id", "link_url", "call_to_action_type", "object_type",
+  "object_story_spec", "effective_object_story_id",
 ];
 
 export const INSIGHT_FIELDS = [

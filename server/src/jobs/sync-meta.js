@@ -5,6 +5,7 @@ import {
   syncAdsets,
   syncAds,
   syncCreatives,
+  syncAdImages,
   syncInsightsDaily,
 } from "../meta/loaders.js";
 
@@ -55,6 +56,7 @@ async function main() {
   await step("adsets", syncAdsets);
   await step("ads", syncAds);
   await step("creatives", syncCreatives);
+  await step("adimages", syncAdImages);
   await step("insights_daily", syncInsightsDaily);
 
   console.log(JSON.stringify({

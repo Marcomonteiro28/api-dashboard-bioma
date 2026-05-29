@@ -46,12 +46,17 @@ export function buildCreativeMatchQuery({ dealId }) {
       cr.body AS creative_body,
       cr.image_url AS creative_image_url,
       cr.thumbnail_url AS creative_thumbnail_url,
+      cr.image_hash AS creative_image_hash,
+      COALESCE(img.permalink_url, img.url) AS creative_image_url_hd,
+      img.width AS creative_image_width,
+      img.height AS creative_image_height,
       cr.link_url AS creative_link_url,
       cr.video_id AS creative_video_id,
       cr.call_to_action_type AS creative_cta
     FROM \`${proj}.${metaDs}.vw_lead_creative\` lc
     LEFT JOIN \`${proj}.${metaDs}.meta_ads\` ad ON ad.id = lc.matched_ad_id
     LEFT JOIN \`${proj}.${metaDs}.meta_adcreatives\` cr ON cr.id = ad.creative_id
+    LEFT JOIN \`${proj}.${metaDs}.meta_adimages\` img ON img.hash = cr.image_hash
     WHERE lc.deal_id = @deal_id
     LIMIT 1
   `;
