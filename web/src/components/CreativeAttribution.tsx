@@ -70,7 +70,6 @@ export function CreativeAttributionBlock({
               <SortableHeader<AttributionCreative> label="Visitas" sortKey="visitas" config={sortConfig} onSort={requestSort} align="right" />
               <SortableHeader<AttributionCreative> label="Gasto Meta" sortKey="gasto_brl" config={sortConfig} onSort={requestSort} align="right" />
               <SortableHeader<AttributionCreative> label="CPL" sortKey="cpl_brl" config={sortConfig} onSort={requestSort} align="right" />
-              <SortableHeader<AttributionCreative> label="CPQ" sortKey="cpq_brl" config={sortConfig} onSort={requestSort} align="right" />
               <SortableHeader<AttributionCreative> label="CTR" sortKey="ctr_pct" config={sortConfig} onSort={requestSort} align="right" />
             </tr>
           </thead>
@@ -89,7 +88,6 @@ export function CreativeAttributionBlock({
                 <td className="num">{fmtNum(c.visitas)}</td>
                 <td className="num">{moneyOr(c.gasto_brl)}</td>
                 <td className="num">{moneyOr(c.cpl_brl)}</td>
-                <td className="num">{moneyOr(c.cpq_brl)}</td>
                 <td className="num">
                   {c.ctr_pct != null && Number(c.ctr_pct) > 0 ? (
                     fmtPct(Number(c.ctr_pct))

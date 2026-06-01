@@ -28,17 +28,15 @@ export function AttributionEmpBlock({
     (acc, e) => {
       acc.gasto += Number(e.gasto_meta_brl) || 0;
       acc.leads += Number(e.leads) || 0;
-      acc.qualif += Number(e.qualificados) || 0;
       acc.impr += Number(e.impressoes) || 0;
       acc.cliques += Number(e.cliques) || 0;
       if (Number(e.gasto_meta_brl) > 0) acc.empsComInvest++;
       return acc;
     },
-    { gasto: 0, leads: 0, qualif: 0, impr: 0, cliques: 0, empsComInvest: 0 }
+    { gasto: 0, leads: 0, impr: 0, cliques: 0, empsComInvest: 0 }
   );
 
   const cpl = totals.leads ? totals.gasto / totals.leads : null;
-  const cpq = totals.qualif ? totals.gasto / totals.qualif : null;
   const ctr = totals.impr ? (totals.cliques / totals.impr) * 100 : null;
 
   return (
@@ -61,11 +59,6 @@ export function AttributionEmpBlock({
           <div className="meta-kpi-sub">{fmtNum(totals.leads)} leads vindos do CRM</div>
         </div>
         <div>
-          <div className="meta-kpi-label">CPQ global</div>
-          <div className="meta-kpi-value">{cpq == null ? "—" : fmtBRL(cpq)}</div>
-          <div className="meta-kpi-sub">{fmtNum(totals.qualif)} qualificados</div>
-        </div>
-        <div>
           <div className="meta-kpi-label">CTR global</div>
           <div className="meta-kpi-value">{ctr == null ? "—" : fmtPct(ctr)}</div>
           <div className="meta-kpi-sub">{totals.empsComInvest} empreendimento(s) com investimento</div>
@@ -81,8 +74,6 @@ export function AttributionEmpBlock({
               <SortableHeader<AttributionEmp> label="Visitas" sortKey="visitas" config={sortConfig} onSort={requestSort} align="right" />
               <SortableHeader<AttributionEmp> label="Gasto Meta" sortKey="gasto_meta_brl" config={sortConfig} onSort={requestSort} align="right" />
               <SortableHeader<AttributionEmp> label="CPL" sortKey="cpl_brl" config={sortConfig} onSort={requestSort} align="right" />
-              <SortableHeader<AttributionEmp> label="CPQ" sortKey="cpq_brl" config={sortConfig} onSort={requestSort} align="right" />
-              <SortableHeader<AttributionEmp> label="CPV" sortKey="cpv_brl" config={sortConfig} onSort={requestSort} align="right" />
               <SortableHeader<AttributionEmp> label="CTR" sortKey="ctr_pct" config={sortConfig} onSort={requestSort} align="right" />
               <SortableHeader<AttributionEmp> label="CPC" sortKey="cpc_brl" config={sortConfig} onSort={requestSort} align="right" />
             </tr>
@@ -96,8 +87,6 @@ export function AttributionEmpBlock({
                 <td className="num">{fmtNum(e.visitas)}</td>
                 <td className="num">{moneyOr(e.gasto_meta_brl)}</td>
                 <td className="num">{moneyOr(e.cpl_brl)}</td>
-                <td className="num">{moneyOr(e.cpq_brl)}</td>
-                <td className="num">{moneyOr(e.cpv_brl)}</td>
                 <td className="num">{pctOrDash(e.ctr_pct)}</td>
                 <td className="num">{moneyOr(e.cpc_brl)}</td>
               </tr>
