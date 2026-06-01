@@ -11,12 +11,41 @@ import type {
   WeeklyLeadsRow,
 } from "./types";
 
-// Em prod (Cloudflare Pages) define VITE_API_BASE_URL pro Cloud Run.
+// Em prod (Vercel) define VITE_API_BASE_URL pro Cloud Run.
 // Em dev local fica vazio e o proxy do vite.config.ts redireciona /api -> :3001.
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
+const TOKEN_KEY = "bioma_auth_token";
+
+export const authStore = {
+  get: () => localStorage.getItem(TOKEN_KEY),
+  set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
+  clear: () => localStorage.removeItem(TOKEN_KEY),
+};
+
+export class AuthError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function get<T>(path: string): Promise<T> {
-  const r = await fetch(API_BASE + path, { credentials: "include" });
+  const token = authStore.get();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const r = await fetch(API_BASE + path, { headers, credentials: "include" });
+  if (r.status === 401 || r.status === 403) {
+    let detail = "";
+    try {
+      const body = await r.json();
+      detail = body?.error || body?.detail || "";
+    } catch {
+      // ignora parse error
+    }
+    throw new AuthError(r.status, detail || `Auth ${r.status}`);
+  }
   if (!r.ok) throw new Error(`API ${r.status}: ${path}`);
   return r.json();
 }

@@ -51,6 +51,22 @@ export const config = {
     pageLimit: parseInt(process.env.AC_PAGE_LIMIT || "100", 10),
     rateLimitMs: parseInt(process.env.AC_RATE_LIMIT_MS || "250", 10),
   },
+  auth: {
+    // Quando googleClientId nao esta configurado (ex: dev local), o middleware
+    // libera o acesso. Em producao, sempre configurar.
+    googleClientId: process.env.GOOGLE_CLIENT_ID || null,
+    // Dominios cujos emails sao automaticamente liberados (csv). Default:
+    // razconsulting.com.br (time interno).
+    allowedDomains: (process.env.ALLOWED_EMAIL_DOMAINS || "razconsulting.com.br")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+    // Emails individuais liberados (csv). Util pra time Bioma cliente.
+    allowedEmails: (process.env.ALLOWED_EMAILS || "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+  },
 };
 
 export const tbl = (name) => "`" + config.project + "." + config.dataset + "." + name + "`";

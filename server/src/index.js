@@ -16,6 +16,7 @@ import { creativeFunnelRouter } from "./routes/creativeFunnel.js";
 import { subOrigensRouter } from "./routes/subOrigens.js";
 import { leadsWeeklyRouter } from "./routes/leadsWeekly.js";
 import { jobsRouter } from "./routes/jobs.js";
+import { requireAuth } from "./middleware/auth.js";
 
 const app = express();
 
@@ -31,7 +32,16 @@ app.use(express.json());
 app.use(requestLogger);
 app.use(rateLimit({ windowMs: config.rateLimitWindowMs, max: config.rateLimitMax }));
 
+// /health publico (Cloud Run liveness + monitoring externo)
 app.use(healthRouter);
+
+// /auth/me retorna info do user logado (testa rapidamente se token vale)
+app.get("/auth/me", requireAuth, (req, res) => res.json({ user: req.user || null }));
+
+// Todas as rotas /api/* exigem ID token Google valido + email autorizado
+// (em dev local sem GOOGLE_CLIENT_ID, o middleware deixa passar)
+app.use("/api", requireAuth);
+
 app.use(empreendimentosRouter);
 app.use(performanceRouter);
 app.use(statusRouter);

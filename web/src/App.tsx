@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppState, useAppDispatch } from "./state";
-import { api } from "./api";
+import { api, authStore, AuthError } from "./api";
+import { Login } from "./components/Login";
 import {
   getCurrentRangeDates,
   getPreviousRangeDates,
@@ -92,6 +93,8 @@ export function App() {
   const state = useAppState();
   const dispatch = useAppDispatch();
 
+  const [authToken, setAuthToken] = useState<string | null>(() => authStore.get());
+  const [authError, setAuthError] = useState<string | null>(null);
   const [bootLoading, setBootLoading] = useState(true);
   const [bootError, setBootError] = useState<string | null>(null);
   const [statusData, setStatusData] = useState<StatusRow[]>([]);
@@ -110,8 +113,11 @@ export function App() {
   const [tab, setTab] = useState<TabKey>("funil");
 
   // Bootstrap: empreendimentos + sub-origens + status atual
+  // Disparado apenas apos auth (authToken nao-null)
   useEffect(() => {
+    if (!authToken) return;
     let cancelled = false;
+    setBootLoading(true);
     (async () => {
       try {
         const [emps, subs, st] = await Promise.all([
@@ -126,6 +132,13 @@ export function App() {
         setBootLoading(false);
       } catch (e) {
         if (cancelled) return;
+        if (e instanceof AuthError) {
+          authStore.clear();
+          setAuthError(e.message);
+          setAuthToken(null);
+          setBootLoading(false);
+          return;
+        }
         setBootError((e as Error).message);
         setBootLoading(false);
       }
@@ -133,7 +146,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [dispatch]);
+  }, [authToken, dispatch]);
 
   // Refresh dos dados que dependem dos filtros
   useEffect(() => {
@@ -286,6 +299,19 @@ export function App() {
       onOpenLead,
     });
   };
+
+  if (!authToken) {
+    return (
+      <Login
+        onSuccess={(idToken) => {
+          authStore.set(idToken);
+          setAuthError(null);
+          setAuthToken(idToken);
+        }}
+        initialError={authError}
+      />
+    );
+  }
 
   return (
     <div className="container">
