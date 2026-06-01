@@ -42,12 +42,46 @@ jobs:
       - name: Configure Docker auth
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
+      - name: Verify required secrets
+        run: |
+          if [ -z "${{ secrets.GCP_PROJECT }}" ]; then
+            echo "::error::GitHub Secret GCP_PROJECT nao esta configurado em repo settings"
+            exit 1
+          fi
+          echo "GCP_PROJECT secret tem valor (length: ${#__P__})"
+          echo "Repository: ${{ github.repository }}"
+          echo "REGION env: ${{ env.REGION }}"
+          echo "IMAGE_REPO env: ${{ env.IMAGE_REPO }}"
+        env:
+          __P__: ${{ secrets.GCP_PROJECT }}
+
+      - name: Check Artifact Registry repo exists
+        run: |
+          echo "Verificando se Artifact Registry repo '${{ env.IMAGE_REPO }}' existe em ${{ secrets.GCP_PROJECT }}/${{ env.REGION }}..."
+          if ! gcloud artifacts repositories describe ${{ env.IMAGE_REPO }} --location=${{ env.REGION }} --project=${{ secrets.GCP_PROJECT }} 2>&1; then
+            echo "::warning::Repo nao existe ou SA sem permissao. Tentando criar..."
+            gcloud artifacts repositories create ${{ env.IMAGE_REPO }} \
+              --repository-format=docker \
+              --location=${{ env.REGION }} \
+              --project=${{ secrets.GCP_PROJECT }} \
+              --description="Cloud Run images for dashboard-api" \
+              || (echo "::error::Falha ao criar Artifact Registry repo. SA precisa de roles/artifactregistry.admin no projeto ${{ secrets.GCP_PROJECT }}" && exit 1)
+            echo "Repo criado com sucesso"
+          else
+            echo "Repo ja existe, OK"
+          fi
+
       - name: Build & push image
         run: |
+          set -e
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.IMAGE_REPO }}/api"
+          echo "Building image: $IMAGE"
           docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          echo "Build OK, pushing tag ${{ github.sha }}..."
           docker push "$IMAGE:${{ github.sha }}"
+          echo "Pushing tag latest..."
           docker push "$IMAGE:latest"
+          echo "All pushes OK"
 
       - name: Deploy to Cloud Run
         run: |
