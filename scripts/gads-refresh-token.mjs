@@ -88,11 +88,27 @@ if (!tokenRes.ok) {
 }
 
 console.log("\n=== SUCESSO ===\n");
-console.log("Refresh token (cola no .env como GADS_REFRESH_TOKEN):");
-console.log("\n  " + json.refresh_token + "\n");
-console.log("Access token (validade 1h, só pra testar agora):");
-console.log("\n  " + json.access_token + "\n");
-console.log("Scope: " + json.scope);
-console.log("Expira em: " + json.expires_in + "s\n");
-console.log("⚠️  Guarde o refresh token com segurança — ele substitui senha pra essa conta Google.");
-console.log("   Em produção (Cloud Run), grave em Secret Manager como gads-refresh-token.\n");
+
+// Grava direto no .env (sem expor refresh token no stdout).
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+const envPath = ".env";
+if (!existsSync(envPath)) {
+  console.error("ERRO: .env não encontrado. Crie um e rode de novo.");
+  process.exit(1);
+}
+const current = readFileSync(envPath, "utf8");
+const withoutOldToken = current
+  .split(/\r?\n/)
+  .filter((line) => !line.startsWith("GADS_REFRESH_TOKEN="))
+  .join("\n");
+const newContent =
+  withoutOldToken.trimEnd() + "\nGADS_REFRESH_TOKEN=" + json.refresh_token + "\n";
+writeFileSync(envPath, newContent, "utf8");
+
+console.log("✅ Refresh token gravado em .env como GADS_REFRESH_TOKEN");
+console.log("   Scope: " + json.scope);
+console.log("   (Access token de 1h tambem foi retornado mas nao foi gravado)\n");
+console.log("⚠️  Em produção (Cloud Run), grave em Secret Manager como gads-refresh-token");
+console.log("   gcloud secrets create gads-refresh-token --data-file=<(echo -n \"<token>\")\n");
+console.log("Proximo passo: configura GADS_DEVELOPER_TOKEN, GADS_CUSTOMER_IDS,");
+console.log("GADS_LOGIN_CUSTOMER_ID no .env e roda: npm run sync:gads\n");

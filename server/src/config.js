@@ -54,7 +54,7 @@ export const config = {
   gads: {
     // Google Ads API config. Pra MCC RazConsulting: developerToken + login_customer_id (MCC)
     // + customerIds (contas filhas a ler) + OAuth (clientId, clientSecret, refreshToken).
-    apiVersion: process.env.GADS_API_VERSION || "v18",
+    apiVersion: process.env.GADS_API_VERSION || "v20",
     developerToken: process.env.GADS_DEVELOPER_TOKEN || null,
     loginCustomerId: (process.env.GADS_LOGIN_CUSTOMER_ID || "").replace(/-/g, "") || null,
     customerIds: (process.env.GADS_CUSTOMER_IDS || "")

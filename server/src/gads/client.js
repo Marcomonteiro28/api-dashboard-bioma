@@ -73,10 +73,14 @@ export async function gaqlSearch(customerId, query) {
     if (login) headers["login-customer-id"] = login;
 
     const start = Date.now();
+    // Em v20+ o pageSize foi removido (fixo em 10000 rows pelo Google).
+    // Mandar pageSize causa erro PAGE_SIZE_NOT_SUPPORTED.
+    const reqBody = { query };
+    if (pageToken) reqBody.pageToken = pageToken;
     const res = await fetch(url, {
       method: "POST",
       headers,
-      body: JSON.stringify({ query, pageSize: 10000, pageToken: pageToken || undefined }),
+      body: JSON.stringify(reqBody),
     });
     const durationMs = Date.now() - start;
     const json = await res.json();
