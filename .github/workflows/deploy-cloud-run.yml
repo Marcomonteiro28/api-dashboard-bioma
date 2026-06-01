@@ -73,7 +73,8 @@ jobs:
           gcloud builds submit \
             --tag="$IMAGE:${{ github.sha }}" \
             --project=${{ secrets.GCP_PROJECT }} \
-            --timeout=900s
+            --timeout=900s \
+            --default-buckets-behavior=REGIONAL_USER_OWNED_BUCKET
           # Tagueia tambem como :latest pra facilitar referencias manuais
           gcloud artifacts docker tags add \
             "$IMAGE:${{ github.sha }}" \
