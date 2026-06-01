@@ -174,9 +174,24 @@ export interface LeadDetailCreative {
   creative_cta: string | null;
 }
 
+export interface OtherDealRow {
+  deal_id: string;
+  empreendimento: string;
+  pipeline_atual: string;
+  stage_titulo_atual: string;
+  deal_status: number;
+  deal_created_at: string;
+  valor_deal: number | null;
+  is_qualificado: number;
+  is_visita: number;
+  is_ganho: number;
+  fonte: string | null;
+}
+
 export interface LeadDetailResponse {
   lead: LeadDetailLead;
   creative: LeadDetailCreative | null;
+  other_deals: OtherDealRow[];
   ac_deal_url: string | null;
 }
 

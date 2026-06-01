@@ -242,6 +242,52 @@ h1 {
 .fonte-tag.fonte-externo_placa { background: #EBE0D5; color: #805D47; }
 .fonte-tag.fonte-externo_telefone { background: #EEE4D8; color: #A88160; }
 .fonte-tag.fonte-externo_passagem { background: #EAEAEA; color: #555; }
+
+/* Other deals list (mesmo contato) */
+.other-deals-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.other-deal-row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.other-deal-row.clickable {
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.other-deal-row.clickable:hover {
+  background: var(--primary-pale);
+  border-color: var(--primary-light);
+}
+.other-deal-date {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.other-deal-emp {
+  font-weight: 600;
+  color: var(--text);
+}
+.other-deal-stage {
+  font-size: 11px;
+  color: var(--text-soft);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .tab {
   background: transparent;
   border: none;

@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { runQuery, cached } from "../bq.js";
 import { config } from "../config.js";
-import { buildLeadQuery, buildCreativeMatchQuery } from "../queries/leadDetail.js";
+import {
+  buildLeadQuery,
+  buildCreativeMatchQuery,
+  buildOtherDealsQuery,
+} from "../queries/leadDetail.js";
 
 // Deriva URL do app do AC a partir do API URL (ex: https://biomainc.api-us1.com -> https://biomainc.activehosted.com)
 function acAppUrl(dealId) {
@@ -26,13 +30,16 @@ leadDetailRouter.get("/api/leads/:dealId", async (req, res, next) => {
     const result = await cached(key, async () => {
       const leadQ = buildLeadQuery({ dealId });
       const matchQ = buildCreativeMatchQuery({ dealId });
-      const [leadRows, matchRows] = await Promise.all([
+      const otherQ = buildOtherDealsQuery({ dealId });
+      const [leadRows, matchRows, otherRows] = await Promise.all([
         runQuery(leadQ.sql, leadQ.params, leadQ.types),
         runQuery(matchQ.sql, matchQ.params, matchQ.types),
+        runQuery(otherQ.sql, otherQ.params, otherQ.types),
       ]);
       return {
         lead: leadRows[0] || null,
         creative: matchRows[0] || null,
+        other_deals: otherRows,
       };
     });
 

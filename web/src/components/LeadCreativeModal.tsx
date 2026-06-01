@@ -5,6 +5,7 @@ import type { LeadDetailResponse, MatchType } from "../types";
 export interface LeadCreativeModalProps {
   dealId: string;
   onClose: () => void;
+  onOpenOtherDeal?: (dealId: string) => void;
 }
 
 const STATUS_LABEL: Record<number, string> = { 0: "Aberto", 1: "Ganho", 2: "Perdido" };
@@ -21,7 +22,7 @@ const matchTag = (m: MatchType | null) => {
   return <span className="match-tag none">sem match Meta</span>;
 };
 
-export function LeadCreativeModal({ dealId, onClose }: LeadCreativeModalProps) {
+export function LeadCreativeModal({ dealId, onClose, onOpenOtherDeal }: LeadCreativeModalProps) {
   const [data, setData] = useState<LeadDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,6 +165,49 @@ export function LeadCreativeModal({ dealId, onClose }: LeadCreativeModalProps) {
                       </li>
                     ))}
                 </ul>
+
+                {data.other_deals && data.other_deals.length > 0 && (
+                  <>
+                    <h4 className="lead-section-title">
+                      Outros deals deste contato{" "}
+                      <span className="badge badge-aberto" style={{ marginLeft: 6 }}>
+                        {data.other_deals.length}
+                      </span>
+                    </h4>
+                    <p
+                      style={{
+                        fontSize: 11,
+                        color: "var(--text-muted)",
+                        margin: "0 0 8px 0",
+                      }}
+                    >
+                      Mesmo e-mail / contact_id — pode ser reconversão na LP ou
+                      interesse em múltiplos empreendimentos
+                    </p>
+                    <ul className="other-deals-list">
+                      {data.other_deals.map((od) => (
+                        <li
+                          key={od.deal_id}
+                          className={`other-deal-row${onOpenOtherDeal ? " clickable" : ""}`}
+                          onClick={() => onOpenOtherDeal?.(od.deal_id)}
+                          title={onOpenOtherDeal ? "Clique pra ver esse deal" : ""}
+                        >
+                          <span className="other-deal-date">{od.deal_created_at}</span>
+                          <span className="other-deal-emp">{od.empreendimento || "—"}</span>
+                          <span
+                            className={`badge ${STATUS_CLASS[od.deal_status] || "badge-aberto"}`}
+                          >
+                            {STATUS_LABEL[od.deal_status] || "—"}
+                          </span>
+                          <span className="other-deal-stage">{od.stage_titulo_atual}</span>
+                          {od.fonte && (
+                            <span className={`fonte-tag fonte-${od.fonte}`}>{od.fonte}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </section>
 
               <section className="lead-creative">

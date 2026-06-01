@@ -507,7 +507,11 @@ export function App() {
 
       {modal && <DealsModal {...modal} />}
       {leadModalId && (
-        <LeadCreativeModal dealId={leadModalId} onClose={() => setLeadModalId(null)} />
+        <LeadCreativeModal
+          dealId={leadModalId}
+          onClose={() => setLeadModalId(null)}
+          onOpenOtherDeal={(newId) => setLeadModalId(newId)}
+        />
       )}
     </div>
   );

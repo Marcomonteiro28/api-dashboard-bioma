@@ -30,6 +30,41 @@ export function buildLeadQuery({ dealId }) {
   return { sql, params: { deal_id: dealId }, types: { deal_id: "STRING" } };
 }
 
+/**
+ * Lista os outros deals do MESMO contato (cross-base por e-mail/contact_id).
+ * Util pra ver historico de conversoes do mesmo lead.
+ */
+export function buildOtherDealsQuery({ dealId }) {
+  const sql = `
+    WITH this_deal AS (
+      SELECT CAST(contact_id AS STRING) AS contact_id
+      FROM \`${proj}.${crmDs}.stg_crm_deals\`
+      WHERE CAST(deal_id AS STRING) = @deal_id
+      LIMIT 1
+    )
+    SELECT
+      CAST(d.deal_id AS STRING) AS deal_id,
+      d.empreendimento,
+      d.pipeline_atual,
+      d.stage_titulo_atual,
+      d.deal_status,
+      FORMAT_TIMESTAMP("%Y-%m-%d", d.deal_created_at) AS deal_created_at,
+      d.valor_deal,
+      d.is_qualificado,
+      d.is_visita,
+      d.is_ganho,
+      ls.fonte
+    FROM \`${proj}.${crmDs}.stg_crm_deals\` d
+    JOIN this_deal td ON CAST(d.contact_id AS STRING) = td.contact_id
+    LEFT JOIN \`${proj}.${metaDs}.vw_lead_source\` ls
+      ON CAST(ls.deal_id AS STRING) = CAST(d.deal_id AS STRING)
+    WHERE CAST(d.deal_id AS STRING) != @deal_id
+    ORDER BY d.deal_created_at DESC
+    LIMIT 20
+  `;
+  return { sql, params: { deal_id: dealId }, types: { deal_id: "STRING" } };
+}
+
 export function buildCreativeMatchQuery({ dealId }) {
   const sql = `
     SELECT
