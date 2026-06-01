@@ -222,7 +222,7 @@ export type Estagio =
   | "propostas"
   | "ganhos";
 
-export type MarketingView = "cross" | "meta_puro";
+export type MarketingView = "completa" | "meta_puro" | "google_puro" | "cross";
 
 /** Linha da view "Meta puro" — campanha agregada no período sem cross com CRM */
 export interface MetaCampaignRow {
@@ -267,4 +267,59 @@ export interface TrackingCoverageRow {
   com_campanha: number;
   com_sub_origem: number;
   com_utm: number;
+}
+
+/** Linha de campanha Google Ads agregada no período */
+export interface GadsCampaignRow {
+  campaign_id: string;
+  customer_id: string;
+  campaign_name: string;
+  status: string | null;
+  channel: string | null;
+  empreendimento: string | null;
+  gasto_brl: number;
+  impressoes: number;
+  cliques: number;
+  conversoes: number;
+  conversion_value_brl: number;
+  dias_ativos: number;
+  primeira_data: string | null;
+  ultima_data: string | null;
+  cpc_brl: number | null;
+  ctr_pct: number | null;
+  cpm_brl: number | null;
+  cpa_brl: number | null;
+}
+
+/** Resumo Google Ads por empreendimento */
+export interface GadsByEmpRow {
+  empreendimento: string | null;
+  campanhas_ativas: number;
+  gasto_brl: number;
+  impressoes: number;
+  cliques: number;
+  conversoes: number;
+  conversion_value_brl: number;
+  dias_ativos: number;
+  cpc_brl: number | null;
+  ctr_pct: number | null;
+  cpm_brl: number | null;
+  cpa_brl: number | null;
+}
+
+/** Resumo unificado Meta + Google por empreendimento */
+export interface MediaPagaByEmpRow {
+  empreendimento: string;
+  gasto_meta_brl: number;
+  gasto_gads_brl: number;
+  gasto_total_brl: number;
+  impr_meta: number;
+  impr_gads: number;
+  impr_total: number;
+  cliques_meta: number;
+  cliques_gads: number;
+  cliques_total: number;
+  conv_gads: number;
+  cpc_total_brl: number | null;
+  ctr_total_pct: number | null;
 }

@@ -127,6 +127,26 @@ h1 {
   margin: 20px 0 10px;
   letter-spacing: -0.2px;
 }
+.platform-split {
+  display: inline-flex;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+}
+.platform-meta, .platform-gads {
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+.platform-meta {
+  background: #E0F0E0;
+  color: #2d6b2d;
+}
+.platform-gads {
+  background: var(--primary-pale);
+  color: var(--accent);
+}
 .tab {
   background: transparent;
   border: none;

@@ -1,10 +1,10 @@
 name: Deploy Cloud Run
 
-# Trigger: push em master que toque o backend ou o Dockerfile.
-# Cloudflare Pages cuida do frontend sozinho ao detectar push (configurado no painel).
+# Trigger: push em main que toque o backend ou o Dockerfile.
+# Vercel cuida do frontend sozinho ao detectar push (configurado no painel).
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'server/**'
       - 'package.json'
@@ -12,6 +12,7 @@ on:
       - 'Dockerfile'
       - '.dockerignore'
       - '.github/workflows/deploy-cloud-run.yml'
+  workflow_dispatch:  # permite disparar manualmente do GitHub UI
 
 env:
   REGION: southamerica-east1

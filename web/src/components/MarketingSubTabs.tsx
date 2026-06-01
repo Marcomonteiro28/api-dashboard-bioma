@@ -2,14 +2,24 @@ import type { MarketingView } from "../types";
 
 const SUBTABS: { key: MarketingView; label: string; description: string }[] = [
   {
+    key: "completa",
+    label: "Mídia paga (completa)",
+    description: "Meta + Google somados",
+  },
+  {
     key: "meta_puro",
-    label: "Meta puro",
-    description: "Dados direto do Meta sem cruzar com CRM",
+    label: "Só Meta",
+    description: "Dados raw do Meta Ads",
+  },
+  {
+    key: "google_puro",
+    label: "Só Google",
+    description: "Dados raw do Google Ads",
   },
   {
     key: "cross",
     label: "Cross com CRM",
-    description: "Meta × ActiveCampaign (depende do tracking)",
+    description: "Meta × ActiveCampaign",
   },
 ];
 

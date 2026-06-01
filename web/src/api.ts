@@ -12,6 +12,9 @@ import type {
   MetaCampaignRow,
   MetaByEmpRow,
   TrackingCoverageRow,
+  GadsCampaignRow,
+  GadsByEmpRow,
+  MediaPagaByEmpRow,
 } from "./types";
 
 // Em prod (Vercel) define VITE_API_BASE_URL pro Cloud Run.
@@ -133,5 +136,17 @@ export const api = {
   trackingCoverage: (p: Params) =>
     get<{ data: TrackingCoverageRow[]; meta: { from: string; to: string; count: number } }>(
       `/api/meta/tracking-coverage?${build(p)}`
+    ),
+  gadsOverview: (p: Params) =>
+    get<{ data: GadsCampaignRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/gads/overview?${build(p)}`
+    ),
+  gadsByEmp: (p: Params) =>
+    get<{ data: GadsByEmpRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/gads/by-emp?${build(p)}`
+    ),
+  mediaPagaByEmp: (p: Params) =>
+    get<{ data: MediaPagaByEmpRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/media-paga/by-emp?${build(p)}`
     ),
 };

@@ -21,6 +21,9 @@ import type {
   MetaCampaignRow,
   MetaByEmpRow,
   TrackingCoverageRow,
+  GadsCampaignRow,
+  GadsByEmpRow,
+  MediaPagaByEmpRow,
 } from "./types";
 import { Header } from "./components/Header";
 import { Tabs } from "./components/Tabs";
@@ -35,6 +38,8 @@ import { CreativeAttributionBlock } from "./components/CreativeAttribution";
 import { CreativeFunnelDash } from "./components/CreativeFunnelDash";
 import { MarketingSubTabs } from "./components/MarketingSubTabs";
 import { MetaPuroView } from "./components/MetaPuroView";
+import { GoogleAdsView } from "./components/GoogleAdsView";
+import { MediaPagaCompletaView } from "./components/MediaPagaCompletaView";
 import { WeeklyLeadsChart } from "./components/WeeklyLeadsChart";
 import { DealsModal, type DealsModalProps } from "./components/DealsModal";
 import { LeadCreativeModal } from "./components/LeadCreativeModal";
@@ -117,10 +122,13 @@ export function App() {
   const [modal, setModal] = useState<DealsModalProps | null>(null);
   const [leadModalId, setLeadModalId] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("funil");
-  const [mkView, setMkView] = useState<MarketingView>("meta_puro");
+  const [mkView, setMkView] = useState<MarketingView>("completa");
   const [metaCampaigns, setMetaCampaigns] = useState<MetaCampaignRow[]>([]);
   const [metaByEmp, setMetaByEmp] = useState<MetaByEmpRow[]>([]);
   const [coverage, setCoverage] = useState<TrackingCoverageRow[]>([]);
+  const [gadsCampaigns, setGadsCampaigns] = useState<GadsCampaignRow[]>([]);
+  const [gadsByEmp, setGadsByEmp] = useState<GadsByEmpRow[]>([]);
+  const [mediaPagaByEmp, setMediaPagaByEmp] = useState<MediaPagaByEmpRow[]>([]);
 
   // Bootstrap: empreendimentos + sub-origens + status atual
   // Disparado apenas apos auth (authToken nao-null)
@@ -198,6 +206,9 @@ export function App() {
         metaOvR,
         metaByEmpR,
         coverageR,
+        gadsOvR,
+        gadsByEmpR,
+        mediaPagaR,
       ] = await Promise.all([
         safeFetch(api.performanceEmp(params), emptyPerf),
         safeFetch(api.performanceEmp(prevParams), emptyPerf),
@@ -208,6 +219,9 @@ export function App() {
         safeFetch(api.metaOverview(params), empty),
         safeFetch(api.metaByEmp(params), empty),
         safeFetch(api.trackingCoverage(params), empty),
+        safeFetch(api.gadsOverview(params), empty),
+        safeFetch(api.gadsByEmp(params), empty),
+        safeFetch(api.mediaPagaByEmp(params), empty),
       ]);
       if (cancelled) return;
       setPerf(cur.data);
@@ -221,6 +235,9 @@ export function App() {
       setMetaCampaigns(metaOvR.data as MetaCampaignRow[]);
       setMetaByEmp(metaByEmpR.data as MetaByEmpRow[]);
       setCoverage(coverageR.data as TrackingCoverageRow[]);
+      setGadsCampaigns(gadsOvR.data as GadsCampaignRow[]);
+      setGadsByEmp(gadsByEmpR.data as GadsByEmpRow[]);
+      setMediaPagaByEmp(mediaPagaR.data as MediaPagaByEmpRow[]);
       setRefreshing(false);
     })();
     return () => {
@@ -382,11 +399,21 @@ export function App() {
           {perf.length > 0 && tab === "marketing" && (
             <>
               <MarketingSubTabs active={mkView} onChange={setMkView} />
+              {mkView === "completa" && (
+                <MediaPagaCompletaView byEmp={mediaPagaByEmp} periodLabel={periodLabel} />
+              )}
               {mkView === "meta_puro" && (
                 <MetaPuroView
                   campaigns={metaCampaigns}
                   byEmp={metaByEmp}
                   coverage={coverage}
+                  periodLabel={periodLabel}
+                />
+              )}
+              {mkView === "google_puro" && (
+                <GoogleAdsView
+                  campaigns={gadsCampaigns}
+                  byEmp={gadsByEmp}
                   periodLabel={periodLabel}
                 />
               )}

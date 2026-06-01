@@ -38,6 +38,9 @@ yarn-error.log*
 # Cache local
 .cache/
 
+# Claude Code local settings (permission allowlist por dev)
+.claude/settings.local.json
+
 # Sync logs do cron
 logs/
 

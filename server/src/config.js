@@ -51,6 +51,25 @@ export const config = {
     pageLimit: parseInt(process.env.AC_PAGE_LIMIT || "100", 10),
     rateLimitMs: parseInt(process.env.AC_RATE_LIMIT_MS || "250", 10),
   },
+  gads: {
+    // Google Ads API config. Pra MCC RazConsulting: developerToken + login_customer_id (MCC)
+    // + customerIds (contas filhas a ler) + OAuth (clientId, clientSecret, refreshToken).
+    apiVersion: process.env.GADS_API_VERSION || "v18",
+    developerToken: process.env.GADS_DEVELOPER_TOKEN || null,
+    loginCustomerId: (process.env.GADS_LOGIN_CUSTOMER_ID || "").replace(/-/g, "") || null,
+    customerIds: (process.env.GADS_CUSTOMER_IDS || "")
+      .split(",")
+      .map((s) => s.trim().replace(/-/g, ""))
+      .filter(Boolean),
+    oauthClientId: process.env.GADS_OAUTH_CLIENT_ID || null,
+    oauthClientSecret: process.env.GADS_OAUTH_CLIENT_SECRET || null,
+    refreshToken: process.env.GADS_REFRESH_TOKEN || null,
+    insightsLookbackDays: parseInt(process.env.GADS_INSIGHTS_LOOKBACK_DAYS || "30", 10),
+    dataset: process.env.GADS_BQ_DATASET || process.env.META_BQ_DATASET || "bioma_meta",
+    rateLimitMs: parseInt(process.env.GADS_RATE_LIMIT_MS || "250", 10),
+    retryMaxAttempts: parseInt(process.env.GADS_RETRY_MAX || "4", 10),
+    retryBackoffMs: parseInt(process.env.GADS_RETRY_BACKOFF_MS || "30000", 10),
+  },
   auth: {
     // Quando googleClientId nao esta configurado (ex: dev local), o middleware
     // libera o acesso. Em producao, sempre configurar.
