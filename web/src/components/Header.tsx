@@ -16,7 +16,7 @@ export function Header() {
       </div>
       <div className="hero">
         <div className="hero-content">
-          <p className="hero-eyebrow">Bioma · Casa Vertical</p>
+          <p className="hero-eyebrow">Bioma - Casa Vertical - Morá</p>
           <h1>Performance do Funil</h1>
           <p className="subtitle">
             ActiveCampaign · pipeline pré-vendas + vendas · dados ao vivo via API
