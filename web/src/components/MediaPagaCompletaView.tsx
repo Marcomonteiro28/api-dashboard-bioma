@@ -2,6 +2,7 @@ import { fmtNum, fmtBRL, fmtPct } from "../utils/format";
 import type { MediaPagaByEmpRow } from "../types";
 import { useSortableData } from "../hooks/useSortableData";
 import { SortableHeader } from "./SortableHeader";
+import { ExportButton } from "./ExportButton";
 
 const moneyOr = (v: number | null | undefined) => {
   const n = Number(v) || 0;
@@ -84,10 +85,29 @@ export function MediaPagaCompletaView({
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <h3 className="card-title">Mídia paga completa — Meta + Google Ads</h3>
-      <p className="card-subtitle">
-        {periodLabel} · KPIs somados das duas plataformas + breakdown por empreendimento
-      </p>
+      <div className="card-header-row">
+        <div>
+          <h3 className="card-title">Mídia paga completa — Meta + Google Ads</h3>
+          <p className="card-subtitle">
+            {periodLabel} · KPIs somados das duas plataformas + breakdown por empreendimento
+          </p>
+        </div>
+        <ExportButton
+          rows={sorted}
+          filename="midia-paga-completa"
+          columns={[
+            { key: "empreendimento", label: "Empreendimento" },
+            { key: "gasto_total_brl", label: "Gasto total (R$)" },
+            { key: "gasto_meta_brl", label: "Gasto Meta (R$)" },
+            { key: "gasto_gads_brl", label: "Gasto Google (R$)" },
+            { key: "impr_total", label: "Impressões total" },
+            { key: "cliques_total", label: "Cliques total" },
+            { key: "ctr_total_pct", label: "CTR (%)" },
+            { key: "cpc_total_brl", label: "CPC (R$)" },
+            { key: "conv_gads", label: "Conversões GAds" },
+          ]}
+        />
+      </div>
 
       <div className="meta-kpi-strip">
         <div>

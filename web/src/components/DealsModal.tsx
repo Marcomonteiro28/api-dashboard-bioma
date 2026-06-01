@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Deal, DealsMeta } from "../types";
+import { ExportButton } from "./ExportButton";
 
 export interface DealsModalProps {
   title: string;
@@ -99,9 +100,43 @@ export function DealsModal(props: DealsModalProps) {
             <h3 className="modal-title">{props.title}</h3>
             <p className="modal-subtitle">{props.subtitle}</p>
           </div>
-          <button className="modal-close" onClick={props.onClose}>
-            ×
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {deals.length > 0 && (
+              <ExportButton
+                rows={deals}
+                filename={`deals-${props.title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`}
+                label="Exportar"
+                columns={[
+                  { key: "deal_id", label: "ID" },
+                  { key: "contact_nome", label: "Nome" },
+                  { key: "contact_email", label: "Email" },
+                  { key: "contact_phone", label: "Telefone" },
+                  { key: "empreendimento", label: "Empreendimento" },
+                  { key: "fonte", label: "Fonte" },
+                  { key: "campanha_deal", label: "Campanha" },
+                  { key: "criativo_deal", label: "Criativo" },
+                  { key: "metragem_m2", label: "Metragem" },
+                  { key: "prioridade", label: "Prioridade" },
+                  { key: "pipeline_atual", label: "Pipeline" },
+                  { key: "stage_titulo_atual", label: "Estágio" },
+                  { key: "deal_status", label: "Status", format: (v) => v === 1 ? "Ganho" : v === 2 ? "Perdido" : "Aberto" },
+                  { key: "sdr_responsavel", label: "SDR" },
+                  { key: "valor_deal", label: "Valor" },
+                  { key: "valor_esperado", label: "Valor esperado" },
+                  { key: "dt_entrada", label: "Entrada" },
+                  { key: "dt_qualificado", label: "Qualificado" },
+                  { key: "dt_visita_agendada", label: "V. Agendada" },
+                  { key: "dt_visita_realizada", label: "V. Realizada" },
+                  { key: "dt_negociacao", label: "Negociação" },
+                  { key: "dt_proposta", label: "Proposta" },
+                  { key: "dt_fechamento", label: "Fechamento" },
+                ]}
+              />
+            )}
+            <button className="modal-close" onClick={props.onClose}>
+              ×
+            </button>
+          </div>
         </div>
         <div className="modal-body">
           {loading && <div className="modal-loading">Carregando deals do BigQuery...</div>}

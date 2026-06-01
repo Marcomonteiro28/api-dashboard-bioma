@@ -2,6 +2,7 @@ import { fmtNum, fmtBRL, fmtPct } from "../utils/format";
 import type { GadsCampaignRow, GadsByEmpRow } from "../types";
 import { useSortableData } from "../hooks/useSortableData";
 import { SortableHeader } from "./SortableHeader";
+import { ExportButton } from "./ExportButton";
 
 const moneyOr = (v: number | null | undefined) => {
   const n = Number(v) || 0;
@@ -211,10 +212,32 @@ export function GoogleAdsView({
 
       {campaigns.length > 0 && (
         <div className="card" style={{ marginBottom: 16 }}>
-          <h3 className="card-title">Campanhas Google Ads — detalhe individual</h3>
-          <p className="card-subtitle">
-            {campaigns.length} campanhas no período · clique nos headers pra ordenar
-          </p>
+          <div className="card-header-row">
+            <div>
+              <h3 className="card-title">Campanhas Google Ads — detalhe individual</h3>
+              <p className="card-subtitle">
+                {campaigns.length} campanhas no período · clique nos headers pra ordenar
+              </p>
+            </div>
+            <ExportButton
+              rows={campSorter.sorted}
+              filename="campanhas-google-ads"
+              columns={[
+                { key: "campaign_name", label: "Campanha" },
+                { key: "channel", label: "Canal" },
+                { key: "empreendimento", label: "Empreendimento" },
+                { key: "status", label: "Status" },
+                { key: "gasto_brl", label: "Gasto (R$)" },
+                { key: "cliques", label: "Cliques" },
+                { key: "conversoes", label: "Conversões" },
+                { key: "ctr_pct", label: "CTR (%)" },
+                { key: "cpc_brl", label: "CPC (R$)" },
+                { key: "cpa_brl", label: "CPA (R$)" },
+                { key: "impressoes", label: "Impressões" },
+                { key: "dias_ativos", label: "Dias ativos" },
+              ]}
+            />
+          </div>
           <div className="table-wrap">
             <table>
               <thead>

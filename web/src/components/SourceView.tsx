@@ -2,6 +2,7 @@ import { fmtNum, fmtPct } from "../utils/format";
 import type { SourceBreakdownRow, SourceByEmpRow, LeadFonte } from "../types";
 import { useSortableData } from "../hooks/useSortableData";
 import { SortableHeader } from "./SortableHeader";
+import { ExportButton } from "./ExportButton";
 
 const FONTE_LABEL: Record<LeadFonte, string> = {
   meta: "Meta",
@@ -89,12 +90,34 @@ export function SourceView({
   return (
     <>
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3 className="card-title">Origem dos leads — atribuição via proxy</h3>
-        <p className="card-subtitle">
-          {periodLabel} · {fmtNum(totalLeads)} leads classificados por cruzamento de{" "}
-          <code>campanha_deal</code>, <code>sub_origem</code> + padrões de naming. Sem campanha nem
-          sub_origem externa → assume Google por proxy (Master Contact List + LP).
-        </p>
+        <div className="card-header-row">
+          <div>
+            <h3 className="card-title">Origem dos leads — atribuição via proxy</h3>
+            <p className="card-subtitle">
+              {periodLabel} · {fmtNum(totalLeads)} leads classificados por cruzamento de{" "}
+              <code>campanha_deal</code>, <code>sub_origem</code> + padrões de naming. Sem campanha nem
+              sub_origem externa → assume Google por proxy (Master Contact List + LP).
+            </p>
+          </div>
+          <ExportButton
+            rows={sorted}
+            filename="origem-leads"
+            columns={[
+              { key: "fonte", label: "Fonte", format: (v) => fonteLabel(String(v)) },
+              { key: "leads", label: "Leads (deals)" },
+              { key: "contatos_unicos", label: "Contatos únicos" },
+              { key: "qualificados", label: "Qualificados" },
+              { key: "agendamentos", label: "Agendamentos" },
+              { key: "visitas", label: "Visitas" },
+              { key: "ganhos", label: "Ganhos" },
+              { key: "pct_qualif", label: "% L→Q", format: (v) => v == null ? "" : (v as number).toFixed(1) },
+              { key: "pct_visita", label: "% L→V", format: (v) => v == null ? "" : (v as number).toFixed(1) },
+              { key: "confianca_alta", label: "Confiança alta" },
+              { key: "confianca_media", label: "Confiança média" },
+              { key: "confianca_baixa", label: "Confiança baixa" },
+            ]}
+          />
+        </div>
 
         <div className="source-summary">
           {sorted.map((r) => {

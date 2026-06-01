@@ -2,6 +2,7 @@ import { fmtNum, fmtBRL, fmtPct } from "../utils/format";
 import type { AttributionEmp } from "../types";
 import { useSortableData } from "../hooks/useSortableData";
 import { SortableHeader } from "./SortableHeader";
+import { ExportButton } from "./ExportButton";
 
 const moneyOr = (v: number | null | undefined) => {
   const n = Number(v) || 0;
@@ -41,10 +42,30 @@ export function AttributionEmpBlock({
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <h3 className="card-title">Atribuição Meta × CRM</h3>
-      <p className="card-subtitle">
-        {periodLabel} · gasto Meta cruzado com leads/qualificados/visitas do CRM por empreendimento
-      </p>
+      <div className="card-header-row">
+        <div>
+          <h3 className="card-title">Atribuição Meta × CRM</h3>
+          <p className="card-subtitle">
+            {periodLabel} · gasto Meta cruzado com leads/qualificados/visitas do CRM por empreendimento
+          </p>
+        </div>
+        <ExportButton
+          rows={sorted}
+          filename="atribuicao-meta-crm"
+          columns={[
+            { key: "empreendimento", label: "Empreendimento" },
+            { key: "leads", label: "Leads CRM" },
+            { key: "qualificados", label: "Qualif" },
+            { key: "visitas", label: "Visitas" },
+            { key: "gasto_meta_brl", label: "Gasto Meta (R$)" },
+            { key: "cpl_brl", label: "CPL (R$)" },
+            { key: "ctr_pct", label: "CTR (%)" },
+            { key: "cpc_brl", label: "CPC (R$)" },
+            { key: "impressoes", label: "Impressões" },
+            { key: "cliques", label: "Cliques" },
+          ]}
+        />
+      </div>
       <div className="meta-kpi-strip">
         <div>
           <div className="meta-kpi-label">Gasto Meta no período</div>

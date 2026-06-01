@@ -2,6 +2,7 @@ import { fmtNum, fmtBRL, fmtPct } from "../utils/format";
 import type { MetaCampaignRow, MetaByEmpRow, TrackingCoverageRow } from "../types";
 import { useSortableData } from "../hooks/useSortableData";
 import { SortableHeader } from "./SortableHeader";
+import { ExportButton } from "./ExportButton";
 
 const moneyOr = (v: number | null | undefined) => {
   const n = Number(v) || 0;
@@ -177,10 +178,33 @@ export function MetaPuroView({
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <h3 className="card-title">Campanhas Meta — detalhe individual</h3>
-        <p className="card-subtitle">
-          {campaigns.length} campanhas no período · ordenado por gasto · clique nos headers pra reordenar
-        </p>
+        <div className="card-header-row">
+          <div>
+            <h3 className="card-title">Campanhas Meta — detalhe individual</h3>
+            <p className="card-subtitle">
+              {campaigns.length} campanhas no período · ordenado por gasto · clique nos headers pra reordenar
+            </p>
+          </div>
+          <ExportButton
+            rows={campSorter.sorted}
+            filename="campanhas-meta"
+            columns={[
+              { key: "campaign_name", label: "Campanha" },
+              { key: "empreendimento", label: "Empreendimento" },
+              { key: "objetivo_parsed", label: "Objetivo" },
+              { key: "effective_status", label: "Status" },
+              { key: "gasto_brl", label: "Gasto (R$)" },
+              { key: "impressoes", label: "Impressões" },
+              { key: "cliques", label: "Cliques" },
+              { key: "reach", label: "Alcance" },
+              { key: "ctr_pct", label: "CTR (%)" },
+              { key: "cpc_brl", label: "CPC (R$)" },
+              { key: "cpm_brl", label: "CPM (R$)" },
+              { key: "frequencia", label: "Frequência" },
+              { key: "dias_ativos", label: "Dias ativos" },
+            ]}
+          />
+        </div>
         <div className="table-wrap">
           <table>
             <thead>

@@ -2,6 +2,7 @@ import { fmtNum, fmtPct } from "../utils/format";
 import type { PerformanceEmp, Estagio } from "../types";
 import { useSortableData } from "../hooks/useSortableData";
 import { SortableHeader } from "./SortableHeader";
+import { ExportButton } from "./ExportButton";
 
 interface EmpRow {
   empreendimento: string;
@@ -59,10 +60,31 @@ export function EmpTable({
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <h3 className="card-title">Performance por empreendimento</h3>
-      <p className="card-subtitle">
-        {periodLabel} · clique em qualquer número pra ver os deals · clique nos headers pra ordenar
-      </p>
+      <div className="card-header-row">
+        <div>
+          <h3 className="card-title">Performance por empreendimento</h3>
+          <p className="card-subtitle">
+            {periodLabel} · clique em qualquer número pra ver os deals · clique nos headers pra ordenar
+          </p>
+        </div>
+        <ExportButton
+          rows={sorted}
+          filename="performance-por-empreendimento"
+          columns={[
+            { key: "empreendimento", label: "Empreendimento" },
+            { key: "leads", label: "Leads" },
+            { key: "contatos_unicos", label: "Contatos únicos" },
+            { key: "qualificados", label: "Qualificados" },
+            { key: "agendamentos", label: "Agendamentos" },
+            { key: "visitas", label: "Visitas" },
+            { key: "negociacoes", label: "Negociações" },
+            { key: "propostas", label: "Propostas" },
+            { key: "pct_qualif", label: "% L→Q", format: (v) => (v as number).toFixed(1) },
+            { key: "pct_qualif_agend", label: "% Q→A", format: (v) => (v as number).toFixed(1) },
+            { key: "pct_agend_visit", label: "% A→V", format: (v) => (v as number).toFixed(1) },
+          ]}
+        />
+      </div>
       <div className="table-wrap">
         <table>
           <thead>
