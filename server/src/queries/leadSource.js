@@ -29,6 +29,7 @@ export function buildSourceBreakdownQuery({ from, to, emps, statuses, subOrigens
     SELECT
       fonte,
       COUNT(DISTINCT deal_id) AS leads,
+      COUNT(DISTINCT contact_id) AS contatos_unicos,
       COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)) AS qualificados,
       COUNT(DISTINCT IF(dt_visita_agendada IS NOT NULL, deal_id, NULL)) AS agendamentos,
       COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)) AS visitas,
@@ -78,6 +79,7 @@ export function buildSourceByEmpQuery({ from, to, emps, statuses, subOrigens }) 
       empreendimento,
       fonte,
       COUNT(DISTINCT deal_id) AS leads,
+      COUNT(DISTINCT contact_id) AS contatos_unicos,
       COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)) AS qualificados,
       COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)) AS visitas,
       COUNT(DISTINCT IF(status = 1, deal_id, NULL)) AS ganhos

@@ -211,6 +211,11 @@ export const VIEWS = {
       cf.dt_visita_agendada,
       cf.dt_visita_realizada,
       cf.dt_fechamento,
+      c.email AS contact_email,
+      c.first_name AS contact_first_name,
+      c.last_name AS contact_last_name,
+      c.phone AS contact_phone,
+      c.cdate AS contact_created_at,
       tags.tags AS contact_tags,
       ccf.c_utm_source AS contact_utm_source,
       ccf.c_utm_medium AS contact_utm_medium,
@@ -232,6 +237,7 @@ export const VIEWS = {
       ml.master_list_form_id
     FROM ${tableRef("ac_deals")} d
     LEFT JOIN cf_pivot cf ON cf.deal_id = d.id
+    LEFT JOIN ${tableRef("ac_contacts")} c ON c.id = d.contact_id
     LEFT JOIN contact_tags_agg tags ON tags.contact_id = d.contact_id
     LEFT JOIN contact_cf_pivot ccf ON ccf.contact_id = d.contact_id
     LEFT JOIN master_list ml ON ml.contact_id = d.contact_id

@@ -141,6 +141,14 @@ export function SourceView({
                   align="right"
                 />
                 <SortableHeader<SourceBreakdownRow>
+                  label="Contatos únicos"
+                  sortKey="contatos_unicos"
+                  config={sortConfig}
+                  onSort={requestSort}
+                  align="right"
+                  title="Contatos distintos por e-mail (dedup) — mesmo e-mail pode gerar múltiplos deals"
+                />
+                <SortableHeader<SourceBreakdownRow>
                   label="Qualif"
                   sortKey="qualificados"
                   config={sortConfig}
@@ -203,6 +211,21 @@ export function SourceView({
                     title="Clique pra ver os leads dessa fonte"
                   >
                     {fmtNum(r.leads)}
+                  </td>
+                  <td
+                    className="num"
+                    title={
+                      r.leads !== r.contatos_unicos
+                        ? `${r.leads - r.contatos_unicos} deals duplicados (mesmo contato com múltiplas conversões)`
+                        : "Sem duplicação por contato"
+                    }
+                  >
+                    {fmtNum(r.contatos_unicos)}
+                    {r.leads !== r.contatos_unicos && (
+                      <span style={{ fontSize: 10, color: "var(--danger)", marginLeft: 4 }}>
+                        (−{r.leads - r.contatos_unicos})
+                      </span>
+                    )}
                   </td>
                   <td className="num">{fmtNum(r.qualificados)}</td>
                   <td className="num">{fmtNum(r.agendamentos)}</td>

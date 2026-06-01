@@ -6,6 +6,7 @@ import {
   syncDealCustomFieldsData,
   syncTags,
   syncContactTags,
+  syncContacts,
   syncContactCustomFieldsMeta,
   syncContactCustomFieldsData,
   syncLists,
@@ -59,6 +60,7 @@ async function main() {
   await step("deal_cf_data", syncDealCustomFieldsData);
   await step("tags", syncTags);
   await step("contact_tags", syncContactTags);
+  await step("contacts", syncContacts);
   await step("contact_cf_meta", syncContactCustomFieldsMeta);
   await step("contact_cf_data", syncContactCustomFieldsData);
   await step("lists", syncLists);

@@ -238,6 +238,7 @@ export type LeadFonte =
 export interface SourceBreakdownRow {
   fonte: LeadFonte;
   leads: number;
+  contatos_unicos: number;
   qualificados: number;
   agendamentos: number;
   visitas: number;
@@ -253,6 +254,7 @@ export interface SourceByEmpRow {
   empreendimento: string;
   fonte: LeadFonte;
   leads: number;
+  contatos_unicos: number;
   qualificados: number;
   visitas: number;
   ganhos: number;

@@ -165,6 +165,26 @@ export async function syncContactTags() {
   return replaceAll("ac_contact_tags", rows);
 }
 
+export async function syncContacts() {
+  const now = new Date().toISOString();
+  const raw = await fetchAllPaginated("/contacts", "contacts");
+  const rows = raw.map((c) => ({
+    id: String(c.id),
+    email: c.email ?? null,
+    first_name: c.firstName ?? null,
+    last_name: c.lastName ?? null,
+    phone: c.phone ?? null,
+    cdate: toIso(c.cdate),
+    udate: toIso(c.udate),
+    anonymized: toInt(c.anonymized),
+    adate: toIso(c.adate),
+    edate: toIso(c.edate),
+    deleted: toInt(c.deleted),
+    synced_at: now,
+  }));
+  return replaceAll("ac_contacts", rows);
+}
+
 export async function syncContactCustomFieldsMeta() {
   const now = new Date().toISOString();
   // Endpoint /fields retorna custom fields de CONTATOS (não confundir com /dealCustomFieldMeta)
