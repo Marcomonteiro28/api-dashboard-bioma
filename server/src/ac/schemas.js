@@ -37,4 +37,21 @@ export const AC_TABLES = {
     { name: "updated_timestamp", type: "TIMESTAMP" },
     { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
   ],
+  ac_tags: [
+    { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "name", type: "STRING" },
+    { name: "description", type: "STRING" },
+    { name: "tag_type", type: "STRING" },
+    { name: "created_timestamp", type: "TIMESTAMP" },
+    { name: "updated_timestamp", type: "TIMESTAMP" },
+    { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
+  ],
+  ac_contact_tags: [
+    { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "contact_id", type: "STRING" },
+    { name: "tag_id", type: "STRING" },
+    { name: "created_timestamp", type: "TIMESTAMP" },
+    { name: "updated_timestamp", type: "TIMESTAMP" },
+    { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
+  ],
 };

@@ -135,3 +135,32 @@ export async function syncDealCustomFieldsData() {
   }));
   return replaceAll("ac_deal_cf_data", rows);
 }
+
+export async function syncTags() {
+  const now = new Date().toISOString();
+  const raw = await fetchAllPaginated("/tags", "tags");
+  const rows = raw.map((t) => ({
+    id: String(t.id),
+    name: t.tag ?? null,
+    description: t.description ?? null,
+    tag_type: t.tagType ?? null,
+    created_timestamp: toIso(t.cdate || t.createdTimestamp),
+    updated_timestamp: toIso(t.mdate || t.updatedTimestamp),
+    synced_at: now,
+  }));
+  return replaceAll("ac_tags", rows);
+}
+
+export async function syncContactTags() {
+  const now = new Date().toISOString();
+  const raw = await fetchAllPaginated("/contactTags", "contactTags");
+  const rows = raw.map((ct) => ({
+    id: String(ct.id),
+    contact_id: ct.contact ? String(ct.contact) : null,
+    tag_id: ct.tag ? String(ct.tag) : null,
+    created_timestamp: toIso(ct.cdate || ct.createdTimestamp),
+    updated_timestamp: toIso(ct.mdate || ct.updatedTimestamp),
+    synced_at: now,
+  }));
+  return replaceAll("ac_contact_tags", rows);
+}

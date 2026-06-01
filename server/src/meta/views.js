@@ -95,7 +95,15 @@ export const VIEWS = {
   `,
 
   vw_ac_deals_enriched: `
-    WITH cf_joined AS (
+    WITH contact_tags_agg AS (
+      SELECT
+        ct.contact_id,
+        STRING_AGG(DISTINCT t.name, '|' ORDER BY t.name) AS tags
+      FROM ${tableRef("ac_contact_tags")} ct
+      JOIN ${tableRef("ac_tags")} t ON t.id = ct.tag_id
+      GROUP BY ct.contact_id
+    ),
+    cf_joined AS (
       SELECT
         cf.deal_id,
         m.field_label,
@@ -166,9 +174,11 @@ export const VIEWS = {
       cf.dt_qualificado,
       cf.dt_visita_agendada,
       cf.dt_visita_realizada,
-      cf.dt_fechamento
+      cf.dt_fechamento,
+      tags.tags AS contact_tags
     FROM ${tableRef("ac_deals")} d
     LEFT JOIN cf_pivot cf ON cf.deal_id = d.id
+    LEFT JOIN contact_tags_agg tags ON tags.contact_id = d.contact_id
     LEFT JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
       ON p.id = CAST(d.pipeline_id AS INT64)
     -- Alinha com stg_crm_deals (Kondado):
@@ -233,11 +243,14 @@ export const VIEWS = {
   // Classificador de fonte por lead (proxy de atribuicao). Ordem das regras
   // (do mais confiavel pro menos):
   //  1. sub_origem explicito ('Meta ADS', 'Google ADS', 'Placa', 'Telefone', 'Passagem')
-  //  2. campanha_deal bate com nome de campanha Meta ou Google ja sincronizado
-  //  3. Padrao de naming: 'RZ -' = Meta, 'RZ |' = Google, ID 10-15 dig = Google,
+  //  2. Tag de contato 'facebook-lead-ads-integration*' -> Meta alta (FB lead form)
+  //  3. UTM source/medium aponta pra Google ou Meta (ads server-side)
+  //  4. campanha_deal bate com nome de campanha Meta ou Google ja sincronizado
+  //  5. Padrao de naming: 'RZ -' = Meta, 'RZ |' = Google, ID 10-15 dig = Google,
   //     palavras 'search'/'pmax' = Google
-  //  4. Tem campanha_deal mas nao bateu nada -> assume Meta (convencao predominante)
-  //  5. Sem campanha + sem sub_origem externa -> proxy Google (Master Contact List + LP)
+  //  6. Tem campanha_deal mas nao bateu nada -> assume Meta (convencao predominante)
+  //  7. Tag 'lead-lp-*' ou 'lead-site' -> Meta (site form)
+  //  8. Sem campanha + sem sub_origem externa -> proxy Google (Master Contact List + LP)
   vw_lead_source: `
     WITH gads_norm AS (
       SELECT ${NORM_FN("name")} AS gads_name FROM ${tableRef("gads_campaigns")}
@@ -261,28 +274,53 @@ export const VIEWS = {
       d.criativo_deal,
       d.sub_origem,
       d.origem,
+      d.contact_tags,
+      d.lt_utm_source,
+      d.lt_utm_medium,
+      d.lt_utm_campaign,
       CASE
+        -- 1. Sub-origem explicita (manualmente preenchida)
         WHEN d.sub_origem = 'Meta ADS' THEN 'meta'
         WHEN d.sub_origem = 'Google ADS' THEN 'google'
         WHEN d.sub_origem = 'Placa' THEN 'externo_placa'
         WHEN d.sub_origem = 'Telefone' THEN 'externo_telefone'
         WHEN d.sub_origem = 'Passagem' THEN 'externo_passagem'
+        -- 2. Tag de FB lead ads integration (automacao do AC quando lead converte em form FB)
+        WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)facebook-lead-ads-integration') THEN 'meta'
+        -- 3. UTM source/medium (novos leads com tracking refinado do Google)
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_source,'')), r'(google|googleads|gads)') THEN 'google'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_source,'')), r'(facebook|fb|instagram|ig|meta)') THEN 'meta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'google'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_medium,'')), r'(paid_social|social_ads|fb-ads)') THEN 'meta'
+        -- 4. Match exato de campanha
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'google'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT meta_name FROM meta_norm) THEN 'meta'
+        -- 5. Padrao de naming
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*\\|') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)\\b(search|pmax)\\b') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*-') THEN 'meta'
+        -- 6. Tem campanha (assume Meta — convencao predominante)
         WHEN d.campanha_deal IS NOT NULL AND d.campanha_deal != '' THEN 'meta'
+        -- 7. Tag de LP/site
+        WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)lead-lp-|lead-site') THEN 'meta'
+        -- 8. Proxy Google (sem sinal nenhum)
         ELSE 'google_proxy'
       END AS fonte,
       CASE
+        -- Alta: sinal explicito ou match exato
         WHEN d.sub_origem IN ('Meta ADS','Google ADS','Placa','Telefone','Passagem') THEN 'alta'
+        WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)facebook-lead-ads-integration') THEN 'alta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_source,'')), r'(google|googleads|gads|facebook|fb|instagram|ig|meta)') THEN 'alta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_medium,'')), r'(cpc|search|pmax|performance|paid_social|social_ads|fb-ads)') THEN 'alta'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'alta'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT meta_name FROM meta_norm) THEN 'alta'
+        -- Media: padrao de naming ou campanha sem match
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*[-|]|\\b(search|pmax)\\b') THEN 'media'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'media'
         WHEN d.campanha_deal IS NOT NULL THEN 'media'
+        WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)lead-lp-|lead-site') THEN 'media'
+        -- Baixa: proxy
         ELSE 'baixa'
       END AS fonte_confianca
     FROM ${viewName("vw_ac_deals_enriched")} d
