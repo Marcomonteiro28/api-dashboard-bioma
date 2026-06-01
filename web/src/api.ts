@@ -67,6 +67,7 @@ interface Params {
   allEmps?: string[];
   status?: number[];
   estagio?: string;
+  fonte?: string;
   limit?: number;
   subOrigens?: string[];
   allSubOrigens?: string[];
@@ -90,6 +91,7 @@ function build(params: Params): string {
     p.set("sub_origens", params.subOrigens.join(","));
   }
   if (params.estagio && params.estagio !== "leads") p.set("estagio", params.estagio);
+  if (params.fonte) p.set("fonte", params.fonte);
   if (params.limit) p.set("limit", String(params.limit));
   return p.toString();
 }

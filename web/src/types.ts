@@ -106,6 +106,9 @@ export interface Deal {
   dt_negociacao: string | null;
   dt_proposta: string | null;
   dt_fechamento: string | null;
+  fonte: string | null;
+  campanha_deal: string | null;
+  criativo_deal: string | null;
 }
 
 export interface DealsMeta {

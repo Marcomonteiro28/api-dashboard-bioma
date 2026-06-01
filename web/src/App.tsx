@@ -338,6 +338,54 @@ export function App() {
     });
   };
 
+  const openModalFonte = (fonte: string) => {
+    const fonteLabels: Record<string, string> = {
+      meta: "Meta",
+      google: "Google",
+      google_proxy: "Google (proxy)",
+      externo_placa: "Externo · Placa",
+      externo_telefone: "Externo · Telefone",
+      externo_passagem: "Externo · Passagem",
+    };
+    setModal({
+      title: `Leads de ${fonteLabels[fonte] || fonte}`,
+      subtitle: `${from} → ${to}`,
+      from,
+      to,
+      empreendimentos: state.selectedEmps,
+      allEmps: state.allEmps,
+      status: state.selectedStatus,
+      subOrigens: state.selectedSubOrigens,
+      allSubOrigens: state.allSubOrigens,
+      fonte,
+      onClose: () => setModal(null),
+      onOpenLead,
+    });
+  };
+
+  const openModalFonteEmp = (fonte: string, empreendimento: string) => {
+    const fonteLabels: Record<string, string> = {
+      meta: "Meta",
+      google: "Google",
+      google_proxy: "Google (proxy)",
+      externo_placa: "Externo · Placa",
+      externo_telefone: "Externo · Telefone",
+      externo_passagem: "Externo · Passagem",
+    };
+    setModal({
+      title: `${empreendimento} — ${fonteLabels[fonte] || fonte}`,
+      subtitle: `${from} → ${to}`,
+      from,
+      to,
+      empreendimentos: [empreendimento],
+      allEmps: state.allEmps,
+      status: state.selectedStatus,
+      fonte,
+      onClose: () => setModal(null),
+      onOpenLead,
+    });
+  };
+
   const openModalFiltros = () => {
     setModal({
       title: "Todos os deals — filtros ativos",
@@ -433,6 +481,8 @@ export function App() {
                   breakdown={sourceBreakdown}
                   byEmp={sourceByEmp}
                   periodLabel={periodLabel}
+                  onOpenFonte={openModalFonte}
+                  onOpenFonteEmp={openModalFonteEmp}
                 />
               )}
               {mkView === "cross" && (

@@ -13,6 +13,7 @@ export interface DealsModalProps {
   subOrigens?: string[];
   allSubOrigens?: string[];
   estagio?: string;
+  fonte?: string;
   onClose: () => void;
   onOpenLead?: (dealId: string) => void;
 }
@@ -37,6 +38,7 @@ export function DealsModal(props: DealsModalProps) {
         subOrigens: props.subOrigens,
         allSubOrigens: props.allSubOrigens,
         estagio: props.estagio,
+        fonte: props.fonte,
         limit: 2000,
       })
       .then((r) => {
@@ -62,6 +64,7 @@ export function DealsModal(props: DealsModalProps) {
     props.subOrigens,
     props.allSubOrigens,
     props.estagio,
+    props.fonte,
   ]);
 
   const statusBadge = (d: Deal) => {
@@ -145,6 +148,8 @@ export function DealsModal(props: DealsModalProps) {
                       <th>Email</th>
                       <th>Telefone</th>
                       <th>Empreendimento</th>
+                      <th>Fonte</th>
+                      <th>Campanha</th>
                       <th>Metragem</th>
                       <th>Prioridade</th>
                       <th>Pipeline</th>
@@ -176,6 +181,24 @@ export function DealsModal(props: DealsModalProps) {
                         <td>{d.contact_phone || "—"}</td>
                         <td>
                           <strong>{d.empreendimento}</strong>
+                        </td>
+                        <td>
+                          {d.fonte ? (
+                            <span className={`fonte-tag fonte-${d.fonte}`}>{d.fonte}</span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td
+                          style={{
+                            maxWidth: 220,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={d.campanha_deal || ""}
+                        >
+                          {d.campanha_deal || "—"}
                         </td>
                         <td>{d.metragem_m2 || "—"}</td>
                         <td>{prioridadeBadge(d.prioridade)}</td>

@@ -61,10 +61,14 @@ export function SourceView({
   breakdown,
   byEmp,
   periodLabel,
+  onOpenFonte,
+  onOpenFonteEmp,
 }: {
   breakdown: SourceBreakdownRow[];
   byEmp: SourceByEmpRow[];
   periodLabel: string;
+  onOpenFonte: (fonte: LeadFonte) => void;
+  onOpenFonteEmp: (fonte: LeadFonte, empreendimento: string) => void;
 }) {
   const totalLeads = breakdown.reduce((s, r) => s + (Number(r.leads) || 0), 0);
 
@@ -193,7 +197,13 @@ export function SourceView({
                     />
                     {fonteLabel(r.fonte)}
                   </td>
-                  <td className="num highlight">{fmtNum(r.leads)}</td>
+                  <td
+                    className="num clickable highlight"
+                    onClick={() => onOpenFonte(r.fonte)}
+                    title="Clique pra ver os leads dessa fonte"
+                  >
+                    {fmtNum(r.leads)}
+                  </td>
                   <td className="num">{fmtNum(r.qualificados)}</td>
                   <td className="num">{fmtNum(r.agendamentos)}</td>
                   <td className="num">{fmtNum(r.visitas)}</td>
@@ -246,9 +256,18 @@ export function SourceView({
                       <td className="emp">{emp}</td>
                       {fontesOrdered.map((f) => {
                         const row = empData.get(f);
-                        return (
+                        return row ? (
+                          <td
+                            key={f}
+                            className="num clickable"
+                            onClick={() => onOpenFonteEmp(f, emp)}
+                            title={`${fonteLabel(f)} × ${emp} — clique pra ver leads`}
+                          >
+                            {fmtNum(row.leads)}
+                          </td>
+                        ) : (
                           <td key={f} className="num">
-                            {row ? fmtNum(row.leads) : <span className="num-zero">—</span>}
+                            <span className="num-zero">—</span>
                           </td>
                         );
                       })}

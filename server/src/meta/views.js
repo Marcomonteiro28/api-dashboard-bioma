@@ -171,11 +171,14 @@ export const VIEWS = {
     LEFT JOIN cf_pivot cf ON cf.deal_id = d.id
     LEFT JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
       ON p.id = CAST(d.pipeline_id AS INT64)
-    -- Filtra so funis de aquisicao: deals em outros pipelines (Convite Evento, etc)
-    -- sao excluidos pra alinhar com stg_crm_deals (Kondado). Deals que VIERAM de
-    -- Convite Evento mas migraram pra Pre Vendas/Vendas sao mantidos (filtro por
-    -- pipeline atual, nao historico).
-    WHERE p.title IN ('Pre Vendas', 'Vendas')
+    -- Alinha com stg_crm_deals (Kondado):
+    -- - Pre Vendas: todos os status
+    -- - Vendas: apenas status 1 (ganho) e 2 (perdido) — exclui status 0 (negociacao)
+    -- - Convite Evento e outros pipelines sao excluidos
+    -- Deals que VIERAM de Convite Evento mas migraram pra Pre Vendas/Vendas
+    -- sao mantidos (filtro por pipeline atual, nao historico).
+    WHERE (p.title = 'Pre Vendas')
+       OR (p.title = 'Vendas' AND d.status IN (1, 2))
   `,
 
   vw_lead_creative: `
