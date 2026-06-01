@@ -35,7 +35,9 @@ async function get<T>(path: string): Promise<T> {
   const token = authStore.get();
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  const r = await fetch(API_BASE + path, { headers, credentials: "include" });
+  // sem credentials: 'include' — usamos Bearer header, nao cookies. Inclui-lo
+  // conflita com Access-Control-Allow-Origin: * no preflight CORS
+  const r = await fetch(API_BASE + path, { headers });
   if (r.status === 401 || r.status === 403) {
     let detail = "";
     try {

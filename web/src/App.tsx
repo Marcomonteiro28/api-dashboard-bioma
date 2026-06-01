@@ -322,13 +322,10 @@ export function App() {
       {bootError && (
         <div className="error">
           <p>
-            <strong>Não foi possível conectar à API.</strong>
+            <strong>Não foi possível carregar os dados.</strong>
           </p>
           <p>
-            Confirme que o servidor está rodando em <code>http://localhost:3001</code>.
-          </p>
-          <p>
-            No PowerShell da pasta do projeto, rode <code>npm start</code> e tente de novo.
+            Verifique sua conexão e tente recarregar a página.
           </p>
           <p style={{ marginTop: 20, color: "#999" }}>Detalhe técnico: {bootError}</p>
         </div>
@@ -371,7 +368,7 @@ export function App() {
       )}
 
       <footer>
-        Dashboard local · dados via <code>http://localhost:3001</code> · ambiente de validação
+        Bioma Dashboard · Casa Vertical · gerenciado por <code>RazConsulting</code>
       </footer>
 
       {modal && <DealsModal {...modal} />}
