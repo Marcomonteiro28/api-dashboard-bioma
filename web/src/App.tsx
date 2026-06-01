@@ -407,7 +407,7 @@ export function App() {
             </>
           )}
 
-          {perf.length > 0 && tab === "marketing" && (
+          {tab === "marketing" && (
             <>
               <MarketingSubTabs active={mkView} onChange={setMkView} />
               {mkView === "completa" && (
