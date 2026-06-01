@@ -39,49 +39,45 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker auth
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-
       - name: Verify required secrets
         run: |
           if [ -z "${{ secrets.GCP_PROJECT }}" ]; then
             echo "::error::GitHub Secret GCP_PROJECT nao esta configurado em repo settings"
             exit 1
           fi
-          echo "GCP_PROJECT secret tem valor (length: ${#__P__})"
+          echo "GCP_PROJECT secret OK (length: ${#__P__})"
           echo "Repository: ${{ github.repository }}"
-          echo "REGION env: ${{ env.REGION }}"
-          echo "IMAGE_REPO env: ${{ env.IMAGE_REPO }}"
         env:
           __P__: ${{ secrets.GCP_PROJECT }}
 
-      - name: Check Artifact Registry repo exists
+      - name: Ensure Artifact Registry repo exists
         run: |
-          echo "Verificando se Artifact Registry repo '${{ env.IMAGE_REPO }}' existe em ${{ secrets.GCP_PROJECT }}/${{ env.REGION }}..."
-          if ! gcloud artifacts repositories describe ${{ env.IMAGE_REPO }} --location=${{ env.REGION }} --project=${{ secrets.GCP_PROJECT }} 2>&1; then
-            echo "::warning::Repo nao existe ou SA sem permissao. Tentando criar..."
+          if ! gcloud artifacts repositories describe ${{ env.IMAGE_REPO }} \
+            --location=${{ env.REGION }} --project=${{ secrets.GCP_PROJECT }} >/dev/null 2>&1; then
+            echo "Repo nao existe. Criando..."
             gcloud artifacts repositories create ${{ env.IMAGE_REPO }} \
               --repository-format=docker \
               --location=${{ env.REGION }} \
-              --project=${{ secrets.GCP_PROJECT }} \
-              --description="Cloud Run images for dashboard-api" \
-              || (echo "::error::Falha ao criar Artifact Registry repo. SA precisa de roles/artifactregistry.admin no projeto ${{ secrets.GCP_PROJECT }}" && exit 1)
-            echo "Repo criado com sucesso"
+              --project=${{ secrets.GCP_PROJECT }}
           else
             echo "Repo ja existe, OK"
           fi
 
-      - name: Build & push image
+      - name: Build image via Cloud Build & push to Artifact Registry
         run: |
-          set -e
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.IMAGE_REPO }}/api"
-          echo "Building image: $IMAGE"
-          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
-          echo "Build OK, pushing tag ${{ github.sha }}..."
-          docker push "$IMAGE:${{ github.sha }}"
-          echo "Pushing tag latest..."
-          docker push "$IMAGE:latest"
-          echo "All pushes OK"
+          echo "Submitting build to Cloud Build → $IMAGE:${{ github.sha }}"
+          # Cloud Build roda no GCP, builda e empurra direto pro AR.
+          # Mais confiavel que docker no runner + tem logs detalhados em Cloud Logging.
+          gcloud builds submit \
+            --tag="$IMAGE:${{ github.sha }}" \
+            --project=${{ secrets.GCP_PROJECT }} \
+            --timeout=900s
+          # Tagueia tambem como :latest pra facilitar referencias manuais
+          gcloud artifacts docker tags add \
+            "$IMAGE:${{ github.sha }}" \
+            "$IMAGE:latest" \
+            --project=${{ secrets.GCP_PROJECT }} || echo "::warning::Tag latest falhou (ignoravel)"
 
       - name: Deploy to Cloud Run
         run: |
