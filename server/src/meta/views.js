@@ -141,6 +141,7 @@ export const VIEWS = {
       d.contact_id,
       d.stage_id,
       d.pipeline_id,
+      p.title AS pipeline_atual,
       d.created_timestamp AS dt_entrada,
       d.updated_timestamp AS dt_atualizacao,
       cf.empreendimento,
@@ -168,6 +169,13 @@ export const VIEWS = {
       cf.dt_fechamento
     FROM ${tableRef("ac_deals")} d
     LEFT JOIN cf_pivot cf ON cf.deal_id = d.id
+    LEFT JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
+      ON p.id = CAST(d.pipeline_id AS INT64)
+    -- Filtra so funis de aquisicao: deals em outros pipelines (Convite Evento, etc)
+    -- sao excluidos pra alinhar com stg_crm_deals (Kondado). Deals que VIERAM de
+    -- Convite Evento mas migraram pra Pre Vendas/Vendas sao mantidos (filtro por
+    -- pipeline atual, nao historico).
+    WHERE p.title IN ('Pre Vendas', 'Vendas')
   `,
 
   vw_lead_creative: `
