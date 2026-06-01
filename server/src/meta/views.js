@@ -103,6 +103,42 @@ export const VIEWS = {
       JOIN ${tableRef("ac_tags")} t ON t.id = ct.tag_id
       GROUP BY ct.contact_id
     ),
+    contact_cf_pivot AS (
+      -- Pivota custom fields de contato por perstag — recupera UTMs e first-touch
+      -- atribuicao que estao no CONTATO (nao no deal). 200+ contatos com UTM real.
+      SELECT
+        d.contact_id,
+        MAX(IF(m.perstag = 'UTM_SOURCE', d.field_value, NULL)) AS c_utm_source,
+        MAX(IF(m.perstag = 'UTM_MEDIUM', d.field_value, NULL)) AS c_utm_medium,
+        MAX(IF(m.perstag = 'UTM_CAMPAIGN', d.field_value, NULL)) AS c_utm_campaign,
+        MAX(IF(m.perstag = 'UTM_CONTENT', d.field_value, NULL)) AS c_utm_content,
+        MAX(IF(m.perstag = 'UTM_TERM', d.field_value, NULL)) AS c_utm_term,
+        MAX(IF(m.perstag = 'FIRSTUTMMEDIUM', d.field_value, NULL)) AS c_first_utm_medium,
+        MAX(IF(m.perstag = 'FIRST_UTM_CONTENT', d.field_value, NULL)) AS c_first_utm_content,
+        MAX(IF(m.perstag = 'FIRSTUTMCAMPAIGN', d.field_value, NULL)) AS c_first_utm_campaign,
+        MAX(IF(m.perstag = 'FIRST_UTM_SOURCE', d.field_value, NULL)) AS c_first_utm_source,
+        MAX(IF(m.perstag = 'LANDING_PAGE', d.field_value, NULL)) AS c_landing_page,
+        MAX(IF(m.perstag = 'FIRSTLANDINGPAGE', d.field_value, NULL)) AS c_first_landing_page,
+        MAX(IF(m.perstag = 'GA_CLIENT_ID', d.field_value, NULL)) AS c_ga_client_id,
+        MAX(IF(m.perstag = 'PRIMEIRO_EVENTO_CONVERSO', d.field_value, NULL)) AS c_primeiro_evento_conversao,
+        MAX(IF(m.perstag = 'LTIMO_EVENTO_CONVERSO', d.field_value, NULL)) AS c_ultimo_evento_conversao,
+        MAX(IF(m.perstag = 'QUANTIDADE_DE_CONVERSES', d.field_value, NULL)) AS c_quantidade_conversoes,
+        MAX(IF(m.perstag = 'CONTACT_EMPREENDIMENTO', d.field_value, NULL)) AS c_empreendimento
+      FROM ${tableRef("ac_contact_cf_data")} d
+      JOIN ${tableRef("ac_contact_cf_meta")} m ON m.id = d.field_id
+      GROUP BY d.contact_id
+    ),
+    master_list AS (
+      -- Subscription na Master Contact List + form_id de qual LP veio
+      SELECT
+        cl.contact_id,
+        MIN(cl.subscription_date) AS master_list_first_sub,
+        MAX(cl.form_id) AS master_list_form_id
+      FROM ${tableRef("ac_contact_lists")} cl
+      JOIN ${tableRef("ac_lists")} l ON l.id = cl.list_id
+      WHERE l.name = 'Master Contact List' AND cl.status = 1
+      GROUP BY cl.contact_id
+    ),
     cf_joined AS (
       SELECT
         cf.deal_id,
@@ -175,10 +211,30 @@ export const VIEWS = {
       cf.dt_visita_agendada,
       cf.dt_visita_realizada,
       cf.dt_fechamento,
-      tags.tags AS contact_tags
+      tags.tags AS contact_tags,
+      ccf.c_utm_source AS contact_utm_source,
+      ccf.c_utm_medium AS contact_utm_medium,
+      ccf.c_utm_campaign AS contact_utm_campaign,
+      ccf.c_utm_content AS contact_utm_content,
+      ccf.c_utm_term AS contact_utm_term,
+      ccf.c_first_utm_source AS contact_first_utm_source,
+      ccf.c_first_utm_medium AS contact_first_utm_medium,
+      ccf.c_first_utm_campaign AS contact_first_utm_campaign,
+      ccf.c_first_utm_content AS contact_first_utm_content,
+      ccf.c_landing_page AS contact_landing_page,
+      ccf.c_first_landing_page AS contact_first_landing_page,
+      ccf.c_ga_client_id AS contact_ga_client_id,
+      ccf.c_primeiro_evento_conversao AS contact_primeiro_evento,
+      ccf.c_ultimo_evento_conversao AS contact_ultimo_evento,
+      ccf.c_quantidade_conversoes AS contact_qtd_conversoes,
+      ccf.c_empreendimento AS contact_empreendimento_cf,
+      ml.master_list_first_sub,
+      ml.master_list_form_id
     FROM ${tableRef("ac_deals")} d
     LEFT JOIN cf_pivot cf ON cf.deal_id = d.id
     LEFT JOIN contact_tags_agg tags ON tags.contact_id = d.contact_id
+    LEFT JOIN contact_cf_pivot ccf ON ccf.contact_id = d.contact_id
+    LEFT JOIN master_list ml ON ml.contact_id = d.contact_id
     LEFT JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
       ON p.id = CAST(d.pipeline_id AS INT64)
     -- Alinha com stg_crm_deals (Kondado):
@@ -262,7 +318,19 @@ export const VIEWS = {
     )
     SELECT
       d.deal_id,
-      d.empreendimento,
+      d.contact_id,
+      -- Empreendimento: prioriza deal CF, depois contact CF, depois extraido da tag FB
+      COALESCE(
+        d.empreendimento,
+        d.contact_empreendimento_cf,
+        CASE
+          WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)apinaj[ée]s') THEN 'Apinajés'
+          WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)alto[_\\s]da[_\\s]lapa') THEN 'Alto da Lapa'
+          WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)simpatia') THEN 'Simpatia'
+          WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)fradique') THEN 'Fradique'
+          ELSE NULL
+        END
+      ) AS empreendimento,
       d.status,
       d.dt_entrada,
       d.dt_qualificado,
@@ -275,9 +343,13 @@ export const VIEWS = {
       d.sub_origem,
       d.origem,
       d.contact_tags,
-      d.lt_utm_source,
-      d.lt_utm_medium,
-      d.lt_utm_campaign,
+      d.contact_utm_source,
+      d.contact_utm_medium,
+      d.contact_utm_campaign,
+      d.contact_first_utm_medium,
+      d.contact_first_utm_content,
+      d.master_list_first_sub,
+      d.master_list_form_id,
       CASE
         -- 1. Sub-origem explicita (manualmente preenchida)
         WHEN d.sub_origem = 'Meta ADS' THEN 'meta'
@@ -285,42 +357,52 @@ export const VIEWS = {
         WHEN d.sub_origem = 'Placa' THEN 'externo_placa'
         WHEN d.sub_origem = 'Telefone' THEN 'externo_telefone'
         WHEN d.sub_origem = 'Passagem' THEN 'externo_passagem'
-        -- 2. Tag de FB lead ads integration (automacao do AC quando lead converte em form FB)
+        -- 2. Tag de FB lead ads integration (automacao quando lead converte em form FB)
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)facebook-lead-ads-integration') THEN 'meta'
-        -- 3. UTM source/medium (novos leads com tracking refinado do Google)
-        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_source,'')), r'(google|googleads|gads)') THEN 'google'
-        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_source,'')), r'(facebook|fb|instagram|ig|meta)') THEN 'meta'
-        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'google'
-        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_medium,'')), r'(paid_social|social_ads|fb-ads)') THEN 'meta'
-        -- 4. Match exato de campanha
+        -- 3. UTM no CONTATO (sinal forte — first-touch ou last-touch)
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_source,'')), r'(google|googleads|gads)') THEN 'google'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_source,'')), r'(facebook|fb|instagram|ig|meta)') THEN 'meta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'google'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_medium,'')), r'(paid_social|social_ads|fb-ads|paidsocial)') THEN 'meta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_first_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'google'
+        -- 4. Match exato de campanha contact_utm_campaign com Meta/Google
+        WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT gads_name FROM gads_norm) THEN 'google'
+        WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT meta_name FROM meta_norm) THEN 'meta'
+        -- 5. Match exato campanha_deal
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'google'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT meta_name FROM meta_norm) THEN 'meta'
-        -- 5. Padrao de naming
+        -- 6. Padrao de naming
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*\\|') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)\\b(search|pmax)\\b') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*-') THEN 'meta'
-        -- 6. Tem campanha (assume Meta — convencao predominante)
+        -- 7. Tem campanha (assume Meta — convencao predominante)
         WHEN d.campanha_deal IS NOT NULL AND d.campanha_deal != '' THEN 'meta'
-        -- 7. Tag de LP/site
+        -- 8. Tag de LP/site
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)lead-lp-|lead-site') THEN 'meta'
-        -- 8. Proxy Google (sem sinal nenhum)
+        -- 9. Master Contact List subscription com form_id => Google por LP (proxy)
+        WHEN d.master_list_first_sub IS NOT NULL AND d.master_list_form_id IS NOT NULL THEN 'google_proxy'
+        -- 10. Sem sinal -> proxy Google fallback
         ELSE 'google_proxy'
       END AS fonte,
       CASE
-        -- Alta: sinal explicito ou match exato
+        -- Alta: sinal explicito (sub_origem, tag FB, UTM no contato, match exato)
         WHEN d.sub_origem IN ('Meta ADS','Google ADS','Placa','Telefone','Passagem') THEN 'alta'
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)facebook-lead-ads-integration') THEN 'alta'
-        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_source,'')), r'(google|googleads|gads|facebook|fb|instagram|ig|meta)') THEN 'alta'
-        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.lt_utm_medium,'')), r'(cpc|search|pmax|performance|paid_social|social_ads|fb-ads)') THEN 'alta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_source,'')), r'(google|googleads|gads|facebook|fb|instagram|ig|meta)') THEN 'alta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_medium,'')), r'(cpc|search|pmax|performance|paid_social|social_ads|fb-ads|paidsocial)') THEN 'alta'
+        WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_first_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'alta'
+        WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT gads_name FROM gads_norm) THEN 'alta'
+        WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT meta_name FROM meta_norm) THEN 'alta'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'alta'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT meta_name FROM meta_norm) THEN 'alta'
-        -- Media: padrao de naming ou campanha sem match
+        -- Media: padrao naming ou campanha_deal sem match exato
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*[-|]|\\b(search|pmax)\\b') THEN 'media'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'media'
         WHEN d.campanha_deal IS NOT NULL THEN 'media'
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)lead-lp-|lead-site') THEN 'media'
-        -- Baixa: proxy
+        WHEN d.master_list_first_sub IS NOT NULL AND d.master_list_form_id IS NOT NULL THEN 'media'
+        -- Baixa: proxy puro
         ELSE 'baixa'
       END AS fonte_confianca
     FROM ${viewName("vw_ac_deals_enriched")} d

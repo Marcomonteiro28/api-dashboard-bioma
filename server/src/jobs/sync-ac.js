@@ -6,6 +6,10 @@ import {
   syncDealCustomFieldsData,
   syncTags,
   syncContactTags,
+  syncContactCustomFieldsMeta,
+  syncContactCustomFieldsData,
+  syncLists,
+  syncContactLists,
 } from "../ac/loaders.js";
 
 async function step(name, fn) {
@@ -55,6 +59,10 @@ async function main() {
   await step("deal_cf_data", syncDealCustomFieldsData);
   await step("tags", syncTags);
   await step("contact_tags", syncContactTags);
+  await step("contact_cf_meta", syncContactCustomFieldsMeta);
+  await step("contact_cf_data", syncContactCustomFieldsData);
+  await step("lists", syncLists);
+  await step("contact_lists", syncContactLists);
 
   console.log(JSON.stringify({
     ts: new Date().toISOString(),

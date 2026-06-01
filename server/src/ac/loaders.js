@@ -164,3 +164,72 @@ export async function syncContactTags() {
   }));
   return replaceAll("ac_contact_tags", rows);
 }
+
+export async function syncContactCustomFieldsMeta() {
+  const now = new Date().toISOString();
+  // Endpoint /fields retorna custom fields de CONTATOS (não confundir com /dealCustomFieldMeta)
+  const raw = await fetchAllPaginated("/fields", "fields");
+  const rows = raw.map((f) => ({
+    id: String(f.id),
+    title: f.title ?? null,
+    perstag: f.perstag ?? null,
+    field_type: f.type ?? null,
+    is_required: toBool(f.isrequired),
+    is_visible: toBool(f.visible),
+    display_order: toInt(f.ordernum),
+    created_timestamp: toIso(f.cdate),
+    updated_timestamp: toIso(f.udate),
+    synced_at: now,
+  }));
+  return replaceAll("ac_contact_cf_meta", rows);
+}
+
+export async function syncContactCustomFieldsData() {
+  const now = new Date().toISOString();
+  // /fieldValues retorna VALORES de contact custom fields
+  const raw = await fetchAllPaginated("/fieldValues", "fieldValues");
+  const rows = raw.map((fv) => ({
+    id: String(fv.id),
+    contact_id: fv.contact ? String(fv.contact) : null,
+    field_id: fv.field ? String(fv.field) : null,
+    field_value: normalizeFieldValue(fv.value),
+    created_timestamp: toIso(fv.cdate),
+    updated_timestamp: toIso(fv.udate),
+    synced_at: now,
+  }));
+  return replaceAll("ac_contact_cf_data", rows);
+}
+
+export async function syncLists() {
+  const now = new Date().toISOString();
+  const raw = await fetchAllPaginated("/lists", "lists");
+  const rows = raw.map((l) => ({
+    id: String(l.id),
+    name: l.name ?? null,
+    stringid: l.stringid ?? null,
+    subscription_count: toInt(l.subscriber_count),
+    created_timestamp: toIso(l.cdate),
+    updated_timestamp: toIso(l.udate),
+    synced_at: now,
+  }));
+  return replaceAll("ac_lists", rows);
+}
+
+export async function syncContactLists() {
+  const now = new Date().toISOString();
+  const raw = await fetchAllPaginated("/contactLists", "contactLists");
+  const rows = raw.map((cl) => ({
+    id: String(cl.id),
+    contact_id: cl.contact ? String(cl.contact) : null,
+    list_id: cl.list ? String(cl.list) : null,
+    status: toInt(cl.status),
+    subscription_date: toIso(cl.sdate),
+    unsubscription_date: toIso(cl.udate),
+    first_name: cl.first_name ?? null,
+    last_name: cl.last_name ?? null,
+    ip4_sub: cl.ip4Sub ?? null,
+    form_id: cl.formid ? String(cl.formid) : null,
+    synced_at: now,
+  }));
+  return replaceAll("ac_contact_lists", rows);
+}
