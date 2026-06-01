@@ -2,7 +2,7 @@ name: Deploy Cloud Run
 
 # Trigger: push em main que toque o backend ou o Dockerfile.
 # Vercel cuida do frontend sozinho ao detectar push (configurado no painel).
-# Last triggered: 2026-06-01 (re-deploy apos SA grant cloudbuild + storage roles)
+# Last triggered: 2026-06-01 (re-deploy apos grant serviceUsageConsumer + storage.admin)
 on:
   push:
     branches: [main]
