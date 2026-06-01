@@ -150,7 +150,12 @@ export const VIEWS = {
     cf_pivot AS (
       SELECT
         deal_id,
-        MAX(IF(field_label = 'Empreendimento', field_value, NULL)) AS empreendimento,
+        -- Normaliza empreendimento: trata 'Sem Empreendimento' e '' como NULL,
+        -- pega primeiro item se multi (campo separado por '||')
+        NULLIF(NULLIF(
+          SPLIT(MAX(IF(field_label = 'Empreendimento', field_value, NULL)), '||')[SAFE_OFFSET(0)],
+          'Sem Empreendimento'
+        ), '') AS empreendimento,
         MAX(IF(field_label = 'Linha de Empreendimento', field_value, NULL)) AS linha_empreendimento,
         MAX(IF(field_label = 'Campanha do deal', field_value, NULL)) AS campanha_deal,
         MAX(IF(field_label = 'Criativo que gerou o deal', field_value, NULL)) AS criativo_deal,
@@ -243,14 +248,11 @@ export const VIEWS = {
     LEFT JOIN master_list ml ON ml.contact_id = d.contact_id
     LEFT JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
       ON p.id = CAST(d.pipeline_id AS INT64)
-    -- Alinha com stg_crm_deals (Kondado):
-    -- - Pre Vendas: todos os status
-    -- - Vendas: apenas status 1 (ganho) e 2 (perdido) — exclui status 0 (negociacao)
-    -- - Convite Evento e outros pipelines sao excluidos
+    -- Alinha com stg_crm_deals (Kondado): incluem Pre Vendas + Vendas (todos
+    -- status incluindo Aberto/Negociacao). Convite Evento e outros sao excluidos.
     -- Deals que VIERAM de Convite Evento mas migraram pra Pre Vendas/Vendas
     -- sao mantidos (filtro por pipeline atual, nao historico).
-    WHERE (p.title = 'Pre Vendas')
-       OR (p.title = 'Vendas' AND d.status IN (1, 2))
+    WHERE p.title IN ('Pre Vendas', 'Vendas')
   `,
 
   vw_lead_creative: `
@@ -321,12 +323,31 @@ export const VIEWS = {
     meta_norm AS (
       SELECT ${NORM_FN("name")} AS meta_name FROM ${tableRef("meta_campaigns")}
       WHERE name IS NOT NULL
+    ),
+    stg_emp AS (
+      -- Kondado's empreendimento como fallback final
+      -- ATENCAO: stg_crm_deals tem deal_id duplicado (mesmo deal em multiplos
+      -- empreendimentos), entao agregamos com ANY_VALUE pra evitar JOIN inflar.
+      SELECT
+        CAST(deal_id AS STRING) AS deal_id,
+        ANY_VALUE(NULLIF(NULLIF(
+          SPLIT(empreendimento, '||')[SAFE_OFFSET(0)],
+          'Sem Empreendimento'
+        ), '')) AS emp_stg
+      FROM \`${config.project}.${config.dataset}.stg_crm_deals\`
+      WHERE empreendimento IS NOT NULL
+        AND empreendimento NOT IN ('Sem Empreendimento','')
+      GROUP BY deal_id
     )
     SELECT
       d.deal_id,
       d.contact_id,
-      -- Empreendimento: prioriza deal CF, depois contact CF, depois extraido da tag FB
-      COALESCE(
+      -- Empreendimento UNIFICADO em 4 niveis (do mais especifico pro mais generico):
+      -- 1. Deal custom field (nossa extracao)
+      -- 2. Contact custom field (Empreendimento setado no contato)
+      -- 3. Tag FB lead ads (extracao via regex no nome do form)
+      -- 4. stg_crm_deals (Kondado) como ultimo fallback — pega casos que nao bateram acima
+      NULLIF(COALESCE(
         d.empreendimento,
         d.contact_empreendimento_cf,
         CASE
@@ -334,9 +355,11 @@ export const VIEWS = {
           WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)alto[_\\s]da[_\\s]lapa') THEN 'Alto da Lapa'
           WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)simpatia') THEN 'Simpatia'
           WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)fradique') THEN 'Fradique'
+          WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)\\bjml\\b') THEN 'JML'
           ELSE NULL
-        END
-      ) AS empreendimento,
+        END,
+        stg.emp_stg
+      ), '') AS empreendimento,
       d.status,
       d.dt_entrada,
       d.dt_qualificado,
@@ -412,6 +435,7 @@ export const VIEWS = {
         ELSE 'baixa'
       END AS fonte_confianca
     FROM ${viewName("vw_ac_deals_enriched")} d
+    LEFT JOIN stg_emp stg ON stg.deal_id = CAST(d.deal_id AS STRING)
   `,
 };
 
