@@ -15,6 +15,8 @@ import type {
   GadsCampaignRow,
   GadsByEmpRow,
   MediaPagaByEmpRow,
+  SourceBreakdownRow,
+  SourceByEmpRow,
 } from "./types";
 
 // Em prod (Vercel) define VITE_API_BASE_URL pro Cloud Run.
@@ -148,5 +150,13 @@ export const api = {
   mediaPagaByEmp: (p: Params) =>
     get<{ data: MediaPagaByEmpRow[]; meta: { from: string; to: string; count: number } }>(
       `/api/media-paga/by-emp?${build(p)}`
+    ),
+  sourceBreakdown: (p: Params) =>
+    get<{ data: SourceBreakdownRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/source/breakdown?${build(p)}`
+    ),
+  sourceByEmp: (p: Params) =>
+    get<{ data: SourceByEmpRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/source/by-emp?${build(p)}`
     ),
 };

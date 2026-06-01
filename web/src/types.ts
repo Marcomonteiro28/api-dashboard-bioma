@@ -222,7 +222,38 @@ export type Estagio =
   | "propostas"
   | "ganhos";
 
-export type MarketingView = "completa" | "meta_puro" | "google_puro" | "cross";
+export type MarketingView = "completa" | "meta_puro" | "google_puro" | "origem" | "cross";
+
+export type LeadFonte =
+  | "meta"
+  | "google"
+  | "google_proxy"
+  | "externo_placa"
+  | "externo_telefone"
+  | "externo_passagem";
+
+export interface SourceBreakdownRow {
+  fonte: LeadFonte;
+  leads: number;
+  qualificados: number;
+  agendamentos: number;
+  visitas: number;
+  ganhos: number;
+  confianca_alta: number;
+  confianca_media: number;
+  confianca_baixa: number;
+  pct_qualif: number | null;
+  pct_visita: number | null;
+}
+
+export interface SourceByEmpRow {
+  empreendimento: string;
+  fonte: LeadFonte;
+  leads: number;
+  qualificados: number;
+  visitas: number;
+  ganhos: number;
+}
 
 /** Linha da view "Meta puro" — campanha agregada no período sem cross com CRM */
 export interface MetaCampaignRow {

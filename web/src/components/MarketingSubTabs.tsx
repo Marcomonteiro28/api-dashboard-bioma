@@ -17,6 +17,11 @@ const SUBTABS: { key: MarketingView; label: string; description: string }[] = [
     description: "Dados raw do Google Ads",
   },
   {
+    key: "origem",
+    label: "Origem dos leads",
+    description: "Atribuição por fonte (proxy)",
+  },
+  {
     key: "cross",
     label: "Cross com CRM",
     description: "Meta × ActiveCampaign",

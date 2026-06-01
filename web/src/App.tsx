@@ -24,6 +24,8 @@ import type {
   GadsCampaignRow,
   GadsByEmpRow,
   MediaPagaByEmpRow,
+  SourceBreakdownRow,
+  SourceByEmpRow,
 } from "./types";
 import { Header } from "./components/Header";
 import { Tabs } from "./components/Tabs";
@@ -40,6 +42,7 @@ import { MarketingSubTabs } from "./components/MarketingSubTabs";
 import { MetaPuroView } from "./components/MetaPuroView";
 import { GoogleAdsView } from "./components/GoogleAdsView";
 import { MediaPagaCompletaView } from "./components/MediaPagaCompletaView";
+import { SourceView } from "./components/SourceView";
 import { WeeklyLeadsChart } from "./components/WeeklyLeadsChart";
 import { DealsModal, type DealsModalProps } from "./components/DealsModal";
 import { LeadCreativeModal } from "./components/LeadCreativeModal";
@@ -129,6 +132,8 @@ export function App() {
   const [gadsCampaigns, setGadsCampaigns] = useState<GadsCampaignRow[]>([]);
   const [gadsByEmp, setGadsByEmp] = useState<GadsByEmpRow[]>([]);
   const [mediaPagaByEmp, setMediaPagaByEmp] = useState<MediaPagaByEmpRow[]>([]);
+  const [sourceBreakdown, setSourceBreakdown] = useState<SourceBreakdownRow[]>([]);
+  const [sourceByEmp, setSourceByEmp] = useState<SourceByEmpRow[]>([]);
 
   // Bootstrap: empreendimentos + sub-origens + status atual
   // Disparado apenas apos auth (authToken nao-null)
@@ -209,6 +214,8 @@ export function App() {
         gadsOvR,
         gadsByEmpR,
         mediaPagaR,
+        srcBreakR,
+        srcByEmpR,
       ] = await Promise.all([
         safeFetch(api.performanceEmp(params), emptyPerf),
         safeFetch(api.performanceEmp(prevParams), emptyPerf),
@@ -222,6 +229,8 @@ export function App() {
         safeFetch(api.gadsOverview(params), empty),
         safeFetch(api.gadsByEmp(params), empty),
         safeFetch(api.mediaPagaByEmp(params), empty),
+        safeFetch(api.sourceBreakdown(params), empty),
+        safeFetch(api.sourceByEmp(params), empty),
       ]);
       if (cancelled) return;
       setPerf(cur.data);
@@ -238,6 +247,8 @@ export function App() {
       setGadsCampaigns(gadsOvR.data as GadsCampaignRow[]);
       setGadsByEmp(gadsByEmpR.data as GadsByEmpRow[]);
       setMediaPagaByEmp(mediaPagaR.data as MediaPagaByEmpRow[]);
+      setSourceBreakdown(srcBreakR.data as SourceBreakdownRow[]);
+      setSourceByEmp(srcByEmpR.data as SourceByEmpRow[]);
       setRefreshing(false);
     })();
     return () => {
@@ -414,6 +425,13 @@ export function App() {
                 <GoogleAdsView
                   campaigns={gadsCampaigns}
                   byEmp={gadsByEmp}
+                  periodLabel={periodLabel}
+                />
+              )}
+              {mkView === "origem" && (
+                <SourceView
+                  breakdown={sourceBreakdown}
+                  byEmp={sourceByEmp}
                   periodLabel={periodLabel}
                 />
               )}

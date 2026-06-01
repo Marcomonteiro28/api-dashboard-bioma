@@ -218,6 +218,64 @@ export const VIEWS = {
     FROM ${viewName("vw_lead_creative")}
     GROUP BY criativo, empreendimento
   `,
+
+  // Classificador de fonte por lead (proxy de atribuicao). Ordem das regras
+  // (do mais confiavel pro menos):
+  //  1. sub_origem explicito ('Meta ADS', 'Google ADS', 'Placa', 'Telefone', 'Passagem')
+  //  2. campanha_deal bate com nome de campanha Meta ou Google ja sincronizado
+  //  3. Padrao de naming: 'RZ -' = Meta, 'RZ |' = Google, ID 10-15 dig = Google,
+  //     palavras 'search'/'pmax' = Google
+  //  4. Tem campanha_deal mas nao bateu nada -> assume Meta (convencao predominante)
+  //  5. Sem campanha + sem sub_origem externa -> proxy Google (Master Contact List + LP)
+  vw_lead_source: `
+    WITH gads_norm AS (
+      SELECT ${NORM_FN("name")} AS gads_name FROM ${tableRef("gads_campaigns")}
+      WHERE name IS NOT NULL
+    ),
+    meta_norm AS (
+      SELECT ${NORM_FN("name")} AS meta_name FROM ${tableRef("meta_campaigns")}
+      WHERE name IS NOT NULL
+    )
+    SELECT
+      d.deal_id,
+      d.empreendimento,
+      d.status,
+      d.dt_entrada,
+      d.dt_qualificado,
+      d.dt_visita_agendada,
+      d.dt_visita_realizada,
+      d.dt_fechamento,
+      d.valor,
+      d.campanha_deal,
+      d.criativo_deal,
+      d.sub_origem,
+      d.origem,
+      CASE
+        WHEN d.sub_origem = 'Meta ADS' THEN 'meta'
+        WHEN d.sub_origem = 'Google ADS' THEN 'google'
+        WHEN d.sub_origem = 'Placa' THEN 'externo_placa'
+        WHEN d.sub_origem = 'Telefone' THEN 'externo_telefone'
+        WHEN d.sub_origem = 'Passagem' THEN 'externo_passagem'
+        WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'google'
+        WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT meta_name FROM meta_norm) THEN 'meta'
+        WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*\\|') THEN 'google'
+        WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)\\b(search|pmax)\\b') THEN 'google'
+        WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'google'
+        WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*-') THEN 'meta'
+        WHEN d.campanha_deal IS NOT NULL AND d.campanha_deal != '' THEN 'meta'
+        ELSE 'google_proxy'
+      END AS fonte,
+      CASE
+        WHEN d.sub_origem IN ('Meta ADS','Google ADS','Placa','Telefone','Passagem') THEN 'alta'
+        WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'alta'
+        WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT meta_name FROM meta_norm) THEN 'alta'
+        WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*[-|]|\\b(search|pmax)\\b') THEN 'media'
+        WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'media'
+        WHEN d.campanha_deal IS NOT NULL THEN 'media'
+        ELSE 'baixa'
+      END AS fonte_confianca
+    FROM ${viewName("vw_ac_deals_enriched")} d
+  `,
 };
 
 export async function applyViews() {
