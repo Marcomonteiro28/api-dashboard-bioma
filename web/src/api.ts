@@ -9,6 +9,9 @@ import type {
   LeadDetailResponse,
   CreativeFunnelRow,
   WeeklyLeadsRow,
+  MetaCampaignRow,
+  MetaByEmpRow,
+  TrackingCoverageRow,
 } from "./types";
 
 // Em prod (Vercel) define VITE_API_BASE_URL pro Cloud Run.
@@ -119,4 +122,16 @@ export const api = {
       meta: { from: string; to: string; count: number; min_leads: number };
     }>(`/api/creative-funnel?${qs}${min}`);
   },
+  metaOverview: (p: Params) =>
+    get<{ data: MetaCampaignRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/meta/overview?${build(p)}`
+    ),
+  metaByEmp: (p: Params) =>
+    get<{ data: MetaByEmpRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/meta/by-emp?${build(p)}`
+    ),
+  trackingCoverage: (p: Params) =>
+    get<{ data: TrackingCoverageRow[]; meta: { from: string; to: string; count: number } }>(
+      `/api/meta/tracking-coverage?${build(p)}`
+    ),
 };

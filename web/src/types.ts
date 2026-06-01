@@ -221,3 +221,50 @@ export type Estagio =
   | "negociacoes"
   | "propostas"
   | "ganhos";
+
+export type MarketingView = "cross" | "meta_puro";
+
+/** Linha da view "Meta puro" — campanha agregada no período sem cross com CRM */
+export interface MetaCampaignRow {
+  campaign_id: string;
+  campaign_name: string;
+  effective_status: string | null;
+  objective_raw: string | null;
+  empreendimento: string | null;
+  objetivo_parsed: string | null;
+  gasto_brl: number;
+  impressoes: number;
+  cliques: number;
+  reach: number;
+  dias_ativos: number;
+  primeira_data: string | null;
+  ultima_data: string | null;
+  cpc_brl: number | null;
+  ctr_pct: number | null;
+  cpm_brl: number | null;
+  frequencia: number | null;
+}
+
+/** Linha do resumo Meta por empreendimento (raw, sem cross) */
+export interface MetaByEmpRow {
+  empreendimento: string | null;
+  campanhas_ativas: number;
+  gasto_brl: number;
+  impressoes: number;
+  cliques: number;
+  reach: number;
+  dias_ativos: number;
+  cpc_brl: number | null;
+  ctr_pct: number | null;
+  cpm_brl: number | null;
+}
+
+/** Coverage do tracking AC por empreendimento (quantos leads tem campos preenchidos) */
+export interface TrackingCoverageRow {
+  empreendimento: string;
+  leads_total: number;
+  com_criativo: number;
+  com_campanha: number;
+  com_sub_origem: number;
+  com_utm: number;
+}

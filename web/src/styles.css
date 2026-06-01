@@ -78,6 +78,55 @@ h1 {
   border-bottom: 1px solid var(--border);
   padding: 0 4px;
 }
+.mk-subtabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  background: var(--primary-pale);
+  padding: 6px;
+  border-radius: 10px;
+}
+.mk-subtab {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--text-soft);
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mk-subtab:hover { background: var(--card); color: var(--text); }
+.mk-subtab.active {
+  background: var(--card);
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(211, 96, 30, 0.08);
+}
+.mk-subtab-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.mk-subtab.active .mk-subtab-label { color: var(--accent); }
+.mk-subtab-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.sub-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 20px 0 10px;
+  letter-spacing: -0.2px;
+}
 .tab {
   background: transparent;
   border: none;
@@ -378,6 +427,24 @@ thead th {
   border-bottom: 1px solid var(--border);
 }
 thead th.num { text-align: right; padding: 10px 12px; }
+thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s, background 0.15s;
+}
+thead th.sortable:hover { color: var(--accent); background: var(--primary-pale); }
+thead th.sortable.active { color: var(--accent); }
+thead th.sortable .sortable-label { margin-right: 6px; }
+thead th.sortable .sort-arrow {
+  display: inline-block;
+  font-size: 10px;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+  font-family: var(--font-display);
+  min-width: 10px;
+}
+thead th.sortable:hover .sort-arrow { opacity: 0.75; }
+thead th.sortable .sort-arrow.active { opacity: 1; color: var(--accent); }
 tbody td { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--border); color: var(--text-soft); }
 tbody td.emp { font-weight: 600; color: var(--text); }
 tbody td.num { text-align: right; padding: 12px; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
@@ -615,6 +682,108 @@ tbody tr:hover { background: var(--primary-pale); }
 }
 .weekly-legend-dot.leads { background: var(--primary); }
 .weekly-legend-dot.qualif { background: var(--accent); }
+
+/* Rich tooltip */
+.rich-tooltip-wrap {
+  position: relative;
+  display: inline-block;
+}
+.rich-tooltip {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #FFFFFF;
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(41, 35, 33, 0.3);
+  font-size: 12px;
+  min-width: 180px;
+  max-width: 280px;
+  z-index: 50;
+  pointer-events: none;
+  animation: rt-fade-in 0.12s ease-out;
+}
+.rich-tooltip-top {
+  bottom: calc(100% + 8px);
+}
+.rich-tooltip-bottom {
+  top: calc(100% + 8px);
+}
+.rich-tooltip-top::after,
+.rich-tooltip-bottom::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+}
+.rich-tooltip-top::after {
+  top: 100%;
+  border-top-color: var(--text);
+}
+.rich-tooltip-bottom::after {
+  bottom: 100%;
+  border-bottom-color: var(--text);
+}
+.rich-tooltip-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-soft);
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  margin-bottom: 6px;
+}
+.rich-tooltip-rows { display: flex; flex-direction: column; gap: 4px; }
+.rich-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+}
+.rich-tooltip-row.emphasis {
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding-top: 5px;
+  margin-top: 2px;
+  font-weight: 700;
+}
+.rich-tooltip-label {
+  color: rgba(255,255,255,0.78);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rich-tooltip-value {
+  font-family: var(--font-display);
+  color: #FFFFFF;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rich-tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+@keyframes rt-fade-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(2px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+/* Override do RichTooltip pra integrar com flex layouts (ex: weekly chart) */
+.rich-tooltip-wrap.as-flex-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+.rich-tooltip-wrap.funnel-tt {
+  display: block;
+  width: 100%;
+}
 
 .btn-ac-link {
   display: inline-flex;

@@ -1,5 +1,7 @@
 import { fmtNum, fmtBRL, fmtPct } from "../utils/format";
 import type { AttributionCreative, MatchType } from "../types";
+import { useSortableData } from "../hooks/useSortableData";
+import { SortableHeader } from "./SortableHeader";
 
 const tagFor = (m: MatchType) => {
   if (m === "AD_NAME")
@@ -36,6 +38,15 @@ export function CreativeAttributionBlock({
   data: AttributionCreative[];
   periodLabel: string;
 }) {
+  // Limita a 20 antes de ordenar pra performance — pega top 20 por leads e
+  // ai aplica o sort cliente. Se quiser sortar a lista completa, mover slice
+  // pra depois do sort.
+  const top = data.slice(0, 20);
+  const { sorted, sortConfig, requestSort } = useSortableData<AttributionCreative>(top, {
+    key: "leads",
+    direction: "desc",
+  });
+
   if (data.length === 0) return null;
 
   const totalDeals = data.reduce((s, c) => s + (Number(c.leads) || 0), 0);
@@ -46,25 +57,25 @@ export function CreativeAttributionBlock({
       <h3 className="card-title">Top criativos × leads (atribuição AC × Meta)</h3>
       <p className="card-subtitle">
         {periodLabel} · {data.length} criativos · {totalDeals} deals taggeados · {adsBateu} bateram
-        com Meta ads · gasto disponível apenas onde houve match
+        com Meta ads · gasto disponível apenas onde houve match · clique nos headers pra ordenar
       </p>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Criativo · empreendimento · match</th>
-              <th className="num">Leads</th>
-              <th className="num">Qualif</th>
-              <th className="num">Agend</th>
-              <th className="num">Visitas</th>
-              <th className="num">Gasto Meta</th>
-              <th className="num">CPL</th>
-              <th className="num">CPQ</th>
-              <th className="num">CTR</th>
+              <SortableHeader<AttributionCreative> label="Criativo · emp · match" sortKey="criativo" config={sortConfig} onSort={requestSort} />
+              <SortableHeader<AttributionCreative> label="Leads" sortKey="leads" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionCreative> label="Qualif" sortKey="qualificados" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionCreative> label="Agend" sortKey="agendamentos" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionCreative> label="Visitas" sortKey="visitas" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionCreative> label="Gasto Meta" sortKey="gasto_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionCreative> label="CPL" sortKey="cpl_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionCreative> label="CPQ" sortKey="cpq_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionCreative> label="CTR" sortKey="ctr_pct" config={sortConfig} onSort={requestSort} align="right" />
             </tr>
           </thead>
           <tbody>
-            {data.slice(0, 20).map((c, i) => (
+            {sorted.map((c, i) => (
               <tr key={i} className="creative-row">
                 <td className="creative-name">
                   {c.criativo}

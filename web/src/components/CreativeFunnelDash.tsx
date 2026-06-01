@@ -1,5 +1,7 @@
 import { fmtNum, fmtBRL, fmtPct } from "../utils/format";
 import type { CreativeFunnelRow, MatchType } from "../types";
+import { useSortableData } from "../hooks/useSortableData";
+import { SortableHeader } from "./SortableHeader";
 
 const tagFor = (m: MatchType) => {
   if (m === "AD_NAME") return <span className="match-tag ad">✓ AD</span>;
@@ -25,6 +27,11 @@ export function CreativeFunnelDash({
   periodLabel: string;
   minLeads: number;
 }) {
+  const { sorted, sortConfig, requestSort } = useSortableData<CreativeFunnelRow>(data, {
+    key: "progression_score",
+    direction: "desc",
+  });
+
   if (data.length === 0) {
     return (
       <div className="card" style={{ marginBottom: 16 }}>
@@ -46,25 +53,25 @@ export function CreativeFunnelDash({
         <code style={{ background: "var(--primary-pale)", padding: "1px 6px", borderRadius: 4 }}>
           (visitas × 3 + agendamentos) ÷ leads × 100
         </code>{" "}
-        — mede progressão real no funil, não só volume de entrada
+        — clique nos headers pra ordenar
       </p>
       <div className="table-wrap">
         <table className="cf-table">
           <thead>
             <tr>
-              <th>Criativo</th>
-              <th className="num">Leads</th>
-              <th className="num">% Qualif</th>
-              <th className="num">% Q→A</th>
-              <th className="num">% A→V</th>
-              <th className="num">% Ganho</th>
-              <th>Score</th>
-              <th className="num">Gasto</th>
-              <th className="num">Custo/visita</th>
+              <SortableHeader<CreativeFunnelRow> label="Criativo" sortKey="criativo" config={sortConfig} onSort={requestSort} />
+              <SortableHeader<CreativeFunnelRow> label="Leads" sortKey="leads" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<CreativeFunnelRow> label="% Qualif" sortKey="pct_qualif" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<CreativeFunnelRow> label="% Q→A" sortKey="pct_qualif_agend" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<CreativeFunnelRow> label="% A→V" sortKey="pct_agend_visit" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<CreativeFunnelRow> label="% Ganho" sortKey="pct_ganho" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<CreativeFunnelRow> label="Score" sortKey="progression_score" config={sortConfig} onSort={requestSort} />
+              <SortableHeader<CreativeFunnelRow> label="Gasto" sortKey="gasto_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<CreativeFunnelRow> label="Custo/visita" sortKey="custo_por_visita_brl" config={sortConfig} onSort={requestSort} align="right" />
             </tr>
           </thead>
           <tbody>
-            {data.map((c, i) => (
+            {sorted.map((c, i) => (
               <tr key={i}>
                 <td className="creative-name">
                   <span className="cf-rank">#{i + 1}</span>{" "}

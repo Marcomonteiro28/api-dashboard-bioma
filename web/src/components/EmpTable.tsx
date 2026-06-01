@@ -1,5 +1,7 @@
 import { fmtNum, fmtPct } from "../utils/format";
 import type { PerformanceEmp, Estagio } from "../types";
+import { useSortableData } from "../hooks/useSortableData";
+import { SortableHeader } from "./SortableHeader";
 
 interface EmpRow {
   empreendimento: string;
@@ -50,33 +52,102 @@ export function EmpTable({
   periodLabel: string;
   onOpenCell: (emp: string, estagio: Estagio) => void;
 }) {
+  const { sorted, sortConfig, requestSort } = useSortableData<EmpRow>(rows, {
+    key: "leads",
+    direction: "desc",
+  });
+
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <h3 className="card-title">Performance por empreendimento</h3>
       <p className="card-subtitle">
-        {periodLabel} · clique em qualquer número pra ver os deals · ordenado por volume de leads
+        {periodLabel} · clique em qualquer número pra ver os deals · clique nos headers pra ordenar
       </p>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Empreendimento</th>
-              <th className="num">Leads</th>
-              <th className="num" title="Contatos únicos: leads agrupados por contact_id">
-                Contatos
-              </th>
-              <th className="num">Qualif.</th>
-              <th className="num">Agend.</th>
-              <th className="num">Visitas</th>
-              <th className="num">Negoc.</th>
-              <th className="num">Prop.</th>
-              <th className="num">% L→Q</th>
-              <th className="num">% Q→A</th>
-              <th className="num">% A→V</th>
+              <SortableHeader<EmpRow>
+                label="Empreendimento"
+                sortKey="empreendimento"
+                config={sortConfig}
+                onSort={requestSort}
+              />
+              <SortableHeader<EmpRow>
+                label="Leads"
+                sortKey="leads"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="Contatos"
+                sortKey="contatos_unicos"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+                title="Contatos únicos: leads agrupados por contact_id"
+              />
+              <SortableHeader<EmpRow>
+                label="Qualif."
+                sortKey="qualificados"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="Agend."
+                sortKey="agendamentos"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="Visitas"
+                sortKey="visitas"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="Negoc."
+                sortKey="negociacoes"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="Prop."
+                sortKey="propostas"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="% L→Q"
+                sortKey="pct_qualif"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="% Q→A"
+                sortKey="pct_qualif_agend"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<EmpRow>
+                label="% A→V"
+                sortKey="pct_agend_visit"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
+            {sorted.length === 0 && (
               <tr>
                 <td
                   colSpan={11}
@@ -86,7 +157,7 @@ export function EmpTable({
                 </td>
               </tr>
             )}
-            {rows.map((e) => (
+            {sorted.map((e) => (
               <tr key={e.empreendimento}>
                 <td className="emp">{e.empreendimento}</td>
                 <td

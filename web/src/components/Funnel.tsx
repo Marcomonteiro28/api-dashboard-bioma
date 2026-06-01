@@ -1,4 +1,5 @@
 import { fmtNum, fmtPct } from "../utils/format";
+import { RichTooltip } from "./RichTooltip";
 
 interface FunnelStage {
   name: string;
@@ -13,23 +14,48 @@ export function Funnel({ stages, periodLabel }: { stages: FunnelStage[]; periodL
       <p className="card-subtitle">Cumulativo · {periodLabel}</p>
       {stages.map((s, i) => {
         const pct = maxLeads ? (s.count / maxLeads) * 100 : 0;
-        const prevStage = i > 0 ? stages[i - 1].count : null;
-        const conv = prevStage ? (s.count / prevStage) * 100 : 100;
+        const prevStage = i > 0 ? stages[i - 1] : null;
+        const conv = prevStage && prevStage.count ? (s.count / prevStage.count) * 100 : 100;
+        const lost = prevStage ? prevStage.count - s.count : 0;
         return (
-          <div key={s.name} className="funnel-row">
-            <div className="funnel-head">
-              <span className="stage-name">{s.name}</span>
-              <span>
-                {fmtNum(s.count)} <span style={{ color: "#94a394" }}>({fmtPct(pct)})</span>
-              </span>
+          <RichTooltip
+            key={s.name}
+            className="funnel-tt"
+            placement="bottom"
+            title={s.name}
+            rows={[
+              { label: "Quantidade", value: fmtNum(s.count), color: "var(--primary)" },
+              { label: "% do topo (leads)", value: fmtPct(pct) },
+              ...(prevStage
+                ? [
+                    {
+                      label: `Conv. de ${prevStage.name}`,
+                      value: fmtPct(conv),
+                      emphasis: true,
+                    },
+                    {
+                      label: "Perdas no estágio",
+                      value: fmtNum(lost),
+                    },
+                  ]
+                : []),
+            ]}
+          >
+            <div className="funnel-row">
+              <div className="funnel-head">
+                <span className="stage-name">{s.name}</span>
+                <span>
+                  {fmtNum(s.count)} <span style={{ color: "#94a394" }}>({fmtPct(pct)})</span>
+                </span>
+              </div>
+              <div className="funnel-bar-bg">
+                <div className="funnel-bar" style={{ width: `${Math.max(pct, 0.5)}%` }} />
+              </div>
+              {i > 0 && (
+                <div className="funnel-conv">↓ {fmtPct(conv)} do estágio anterior</div>
+              )}
             </div>
-            <div className="funnel-bar-bg">
-              <div className="funnel-bar" style={{ width: `${Math.max(pct, 0.5)}%` }} />
-            </div>
-            {i > 0 && (
-              <div className="funnel-conv">↓ {fmtPct(conv)} do estágio anterior</div>
-            )}
-          </div>
+          </RichTooltip>
         );
       })}
     </div>

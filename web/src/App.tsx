@@ -17,6 +17,10 @@ import type {
   WeeklyLeadsRow,
   Estagio,
   TabKey,
+  MarketingView,
+  MetaCampaignRow,
+  MetaByEmpRow,
+  TrackingCoverageRow,
 } from "./types";
 import { Header } from "./components/Header";
 import { Tabs } from "./components/Tabs";
@@ -29,6 +33,8 @@ import { EmpTable, buildEmpRows } from "./components/EmpTable";
 import { AttributionEmpBlock } from "./components/AttributionEmp";
 import { CreativeAttributionBlock } from "./components/CreativeAttribution";
 import { CreativeFunnelDash } from "./components/CreativeFunnelDash";
+import { MarketingSubTabs } from "./components/MarketingSubTabs";
+import { MetaPuroView } from "./components/MetaPuroView";
 import { WeeklyLeadsChart } from "./components/WeeklyLeadsChart";
 import { DealsModal, type DealsModalProps } from "./components/DealsModal";
 import { LeadCreativeModal } from "./components/LeadCreativeModal";
@@ -111,6 +117,10 @@ export function App() {
   const [modal, setModal] = useState<DealsModalProps | null>(null);
   const [leadModalId, setLeadModalId] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("funil");
+  const [mkView, setMkView] = useState<MarketingView>("meta_puro");
+  const [metaCampaigns, setMetaCampaigns] = useState<MetaCampaignRow[]>([]);
+  const [metaByEmp, setMetaByEmp] = useState<MetaByEmpRow[]>([]);
+  const [coverage, setCoverage] = useState<TrackingCoverageRow[]>([]);
 
   // Bootstrap: empreendimentos + sub-origens + status atual
   // Disparado apenas apos auth (authToken nao-null)
@@ -178,13 +188,26 @@ export function App() {
       const empty = { data: [], meta: { from, to, count: 0 } };
       const emptyPerf = { data: [], meta: { from, to, count: 0, totals: null } };
       const emptyFunnel = { data: [], meta: { from, to, count: 0, min_leads: MIN_LEADS } };
-      const [cur, prv, attribR, creativeR, funnelR, weeklyR] = await Promise.all([
+      const [
+        cur,
+        prv,
+        attribR,
+        creativeR,
+        funnelR,
+        weeklyR,
+        metaOvR,
+        metaByEmpR,
+        coverageR,
+      ] = await Promise.all([
         safeFetch(api.performanceEmp(params), emptyPerf),
         safeFetch(api.performanceEmp(prevParams), emptyPerf),
         safeFetch(api.attributionEmp(params), empty),
         safeFetch(api.attributionCreative(params), empty),
         safeFetch(api.creativeFunnel({ ...params, min_leads: MIN_LEADS }), emptyFunnel),
         safeFetch(api.leadsWeekly(params), empty),
+        safeFetch(api.metaOverview(params), empty),
+        safeFetch(api.metaByEmp(params), empty),
+        safeFetch(api.trackingCoverage(params), empty),
       ]);
       if (cancelled) return;
       setPerf(cur.data);
@@ -195,6 +218,9 @@ export function App() {
       setCreative(creativeR.data);
       setCreativeFunnel(funnelR.data);
       setWeekly(weeklyR.data);
+      setMetaCampaigns(metaOvR.data as MetaCampaignRow[]);
+      setMetaByEmp(metaByEmpR.data as MetaByEmpRow[]);
+      setCoverage(coverageR.data as TrackingCoverageRow[]);
       setRefreshing(false);
     })();
     return () => {
@@ -355,13 +381,26 @@ export function App() {
 
           {perf.length > 0 && tab === "marketing" && (
             <>
-              <AttributionEmpBlock data={attrib} periodLabel={periodLabel} />
-              <CreativeFunnelDash
-                data={creativeFunnel}
-                periodLabel={periodLabel}
-                minLeads={MIN_LEADS}
-              />
-              <CreativeAttributionBlock data={creative} periodLabel={periodLabel} />
+              <MarketingSubTabs active={mkView} onChange={setMkView} />
+              {mkView === "meta_puro" && (
+                <MetaPuroView
+                  campaigns={metaCampaigns}
+                  byEmp={metaByEmp}
+                  coverage={coverage}
+                  periodLabel={periodLabel}
+                />
+              )}
+              {mkView === "cross" && (
+                <>
+                  <AttributionEmpBlock data={attrib} periodLabel={periodLabel} />
+                  <CreativeFunnelDash
+                    data={creativeFunnel}
+                    periodLabel={periodLabel}
+                    minLeads={MIN_LEADS}
+                  />
+                  <CreativeAttributionBlock data={creative} periodLabel={periodLabel} />
+                </>
+              )}
             </>
           )}
         </>

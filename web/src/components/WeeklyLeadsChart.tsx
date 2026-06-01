@@ -1,5 +1,6 @@
-import { fmtNum } from "../utils/format";
+import { fmtNum, fmtPct } from "../utils/format";
 import type { WeeklyLeadsRow } from "../types";
+import { RichTooltip } from "./RichTooltip";
 
 function formatWeekLabel(iso: string): string {
   // iso = "2026-05-25" (segunda-feira)
@@ -7,6 +8,15 @@ function formatWeekLabel(iso: string): string {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   return `${dd}/${mm}`;
+}
+
+function formatWeekRange(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  const end = new Date(d);
+  end.setDate(end.getDate() + 6);
+  const fmt = (x: Date) =>
+    `${String(x.getDate()).padStart(2, "0")}/${String(x.getMonth() + 1).padStart(2, "0")}`;
+  return `${fmt(d)} → ${fmt(end)}`;
 }
 
 export function WeeklyLeadsChart({
@@ -42,9 +52,36 @@ export function WeeklyLeadsChart({
       <div className="weekly-chart">
         {data.map((d) => {
           const pctLeads = (d.leads / maxLeads) * 100;
-          const pctQualif = d.leads ? (d.qualificados / d.leads) * 100 : 0;
+          const pctQualifInLead = d.leads ? (d.qualificados / d.leads) * 100 : 0;
+          const pctVisitInLead = d.leads ? (d.visitas / d.leads) * 100 : 0;
+          const pctGanhoInLead = d.leads ? (d.ganhos / d.leads) * 100 : 0;
           return (
-            <div key={d.semana} className="weekly-bar-wrap" title={`Semana de ${d.semana}`}>
+            <RichTooltip
+              key={d.semana}
+              className="as-flex-item"
+              title={`Semana ${formatWeekRange(d.semana)}`}
+              rows={[
+                {
+                  label: "Leads entrada",
+                  value: fmtNum(d.leads),
+                  color: "var(--primary)",
+                },
+                {
+                  label: "Qualificados",
+                  value: `${fmtNum(d.qualificados)} (${fmtPct(pctQualifInLead)})`,
+                  color: "var(--accent)",
+                },
+                {
+                  label: "Visitas",
+                  value: `${fmtNum(d.visitas)} (${fmtPct(pctVisitInLead)})`,
+                },
+                {
+                  label: "Ganhos",
+                  value: `${fmtNum(d.ganhos)} (${fmtPct(pctGanhoInLead)})`,
+                  emphasis: true,
+                },
+              ]}
+            >
               <div className="weekly-bar-numbers">
                 <span className="weekly-bar-leads">{fmtNum(d.leads)}</span>
                 {d.qualificados > 0 && (
@@ -55,12 +92,12 @@ export function WeeklyLeadsChart({
                 <div className="weekly-bar-leads-fill" style={{ height: `${pctLeads}%` }}>
                   <div
                     className="weekly-bar-qualif-fill"
-                    style={{ height: `${pctQualif}%` }}
+                    style={{ height: `${pctQualifInLead}%` }}
                   />
                 </div>
               </div>
               <div className="weekly-bar-label">{formatWeekLabel(d.semana)}</div>
-            </div>
+            </RichTooltip>
           );
         })}
       </div>

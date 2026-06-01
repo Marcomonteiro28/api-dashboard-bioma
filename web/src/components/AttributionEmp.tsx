@@ -1,5 +1,7 @@
 import { fmtNum, fmtBRL, fmtPct } from "../utils/format";
 import type { AttributionEmp } from "../types";
+import { useSortableData } from "../hooks/useSortableData";
+import { SortableHeader } from "./SortableHeader";
 
 const moneyOr = (v: number | null | undefined) => {
   const n = Number(v) || 0;
@@ -15,6 +17,11 @@ export function AttributionEmpBlock({
   data: AttributionEmp[];
   periodLabel: string;
 }) {
+  const { sorted, sortConfig, requestSort } = useSortableData<AttributionEmp>(data, {
+    key: "gasto_meta_brl",
+    direction: "desc",
+  });
+
   if (data.length === 0) return null;
 
   const totals = data.reduce(
@@ -33,10 +40,6 @@ export function AttributionEmpBlock({
   const cpl = totals.leads ? totals.gasto / totals.leads : null;
   const cpq = totals.qualif ? totals.gasto / totals.qualif : null;
   const ctr = totals.impr ? (totals.cliques / totals.impr) * 100 : null;
-
-  const sorted = [...data].sort(
-    (a, b) => (Number(b.gasto_meta_brl) || 0) - (Number(a.gasto_meta_brl) || 0)
-  );
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
@@ -72,16 +75,16 @@ export function AttributionEmpBlock({
         <table>
           <thead>
             <tr>
-              <th>Empreendimento</th>
-              <th className="num">Leads</th>
-              <th className="num">Qualif</th>
-              <th className="num">Visitas</th>
-              <th className="num">Gasto Meta</th>
-              <th className="num">CPL</th>
-              <th className="num">CPQ</th>
-              <th className="num">CPV</th>
-              <th className="num">CTR</th>
-              <th className="num">CPC</th>
+              <SortableHeader<AttributionEmp> label="Empreendimento" sortKey="empreendimento" config={sortConfig} onSort={requestSort} />
+              <SortableHeader<AttributionEmp> label="Leads" sortKey="leads" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="Qualif" sortKey="qualificados" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="Visitas" sortKey="visitas" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="Gasto Meta" sortKey="gasto_meta_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="CPL" sortKey="cpl_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="CPQ" sortKey="cpq_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="CPV" sortKey="cpv_brl" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="CTR" sortKey="ctr_pct" config={sortConfig} onSort={requestSort} align="right" />
+              <SortableHeader<AttributionEmp> label="CPC" sortKey="cpc_brl" config={sortConfig} onSort={requestSort} align="right" />
             </tr>
           </thead>
           <tbody>
