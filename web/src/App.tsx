@@ -446,7 +446,7 @@ export function App() {
             <>
               <KpiGrid cur={cur} prev={prev} onOpenStage={openModalEstagio} />
               <Diagnostics porEmp={porEmpDiag} />
-              <WeeklyLeadsChart data={weekly} periodLabel={periodLabel} />
+              <WeeklyLeadsChart data={weekly} periodLabel={periodLabel} from={from} to={to} />
               <div className="row two-col">
                 <Funnel stages={funnelStages} periodLabel={periodLabel} />
                 <StatusBars rows={statusData} />

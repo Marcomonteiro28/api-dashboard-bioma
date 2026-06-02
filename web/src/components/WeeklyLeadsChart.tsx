@@ -2,29 +2,71 @@ import { fmtNum, fmtPct } from "../utils/format";
 import type { WeeklyLeadsRow } from "../types";
 import { RichTooltip } from "./RichTooltip";
 
-function formatWeekLabel(iso: string): string {
-  // iso = "2026-05-25" (segunda-feira)
-  const d = new Date(iso + "T00:00:00");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}`;
+const fmtDate = (x: Date) =>
+  `${String(x.getDate()).padStart(2, "0")}/${String(x.getMonth() + 1).padStart(2, "0")}`;
+
+/**
+ * Calcula o range visivel da semana considerando o filtro [from, to].
+ * Se a semana inteira (Mon-Sun) cai dentro do filtro, retorna ela toda.
+ * Se for parcial (filtro corta a semana), retorna so o trecho visivel.
+ */
+function getVisibleWeekRange(
+  weekStartIso: string,
+  fromIso: string,
+  toIso: string
+): { start: Date; end: Date; daysInFilter: number; isPartial: boolean } {
+  const weekStart = new Date(weekStartIso + "T00:00:00");
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const filterFrom = new Date(fromIso + "T00:00:00");
+  const filterTo = new Date(toIso + "T00:00:00");
+
+  const start = weekStart < filterFrom ? filterFrom : weekStart;
+  const end = weekEnd > filterTo ? filterTo : weekEnd;
+  const daysInFilter = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+  const isPartial = daysInFilter < 7;
+
+  return { start, end, daysInFilter, isPartial };
 }
 
-function formatWeekRange(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  const end = new Date(d);
-  end.setDate(end.getDate() + 6);
-  const fmt = (x: Date) =>
-    `${String(x.getDate()).padStart(2, "0")}/${String(x.getMonth() + 1).padStart(2, "0")}`;
-  return `${fmt(d)} → ${fmt(end)}`;
+function formatWeekLabel(
+  weekStartIso: string,
+  fromIso: string,
+  toIso: string
+): string {
+  const { start, end, isPartial } = getVisibleWeekRange(weekStartIso, fromIso, toIso);
+  if (!isPartial) return fmtDate(start);
+  return `${fmtDate(start)}-${fmtDate(end)}`;
+}
+
+function formatWeekRange(
+  weekStartIso: string,
+  fromIso: string,
+  toIso: string
+): { range: string; isPartial: boolean; daysInFilter: number } {
+  const { start, end, daysInFilter, isPartial } = getVisibleWeekRange(
+    weekStartIso,
+    fromIso,
+    toIso
+  );
+  return {
+    range: `${fmtDate(start)} → ${fmtDate(end)}`,
+    isPartial,
+    daysInFilter,
+  };
 }
 
 export function WeeklyLeadsChart({
   data,
   periodLabel,
+  from,
+  to,
 }: {
   data: WeeklyLeadsRow[];
   periodLabel: string;
+  from: string;
+  to: string;
 }) {
   if (data.length === 0) {
     return (
@@ -55,11 +97,15 @@ export function WeeklyLeadsChart({
           const pctQualifInLead = d.leads ? (d.qualificados / d.leads) * 100 : 0;
           const pctVisitInLead = d.leads ? (d.visitas / d.leads) * 100 : 0;
           const pctGanhoInLead = d.leads ? (d.ganhos / d.leads) * 100 : 0;
+          const { range, isPartial, daysInFilter } = formatWeekRange(d.semana, from, to);
+          const tooltipTitle = isPartial
+            ? `${range} (${daysInFilter} dias visíveis · semana parcial)`
+            : `Semana ${range}`;
           return (
             <RichTooltip
               key={d.semana}
               className="as-flex-item"
-              title={`Semana ${formatWeekRange(d.semana)}`}
+              title={tooltipTitle}
               rows={[
                 {
                   label: "Leads entrada",
@@ -96,7 +142,7 @@ export function WeeklyLeadsChart({
                   />
                 </div>
               </div>
-              <div className="weekly-bar-label">{formatWeekLabel(d.semana)}</div>
+              <div className="weekly-bar-label">{formatWeekLabel(d.semana, from, to)}</div>
             </RichTooltip>
           );
         })}
