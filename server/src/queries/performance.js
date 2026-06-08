@@ -1,4 +1,9 @@
-import { tbl } from "../config.js";
+import { config } from "../config.js";
+
+// Funil/Performance usa vw_lead_source (mesma fonte da tab Origem dos leads).
+// Garante que ambas as visoes mostrem os MESMOS deals — sem divergencia causada
+// pelo lag de sync entre Kondado (1x/dia) e nosso sync direto AC (mais fresco).
+const LEAD_SOURCE_VIEW = "`" + config.project + "." + config.meta.dataset + ".vw_lead_source`";
 
 export const NULL_SUB_ORIGEM_TOKEN = "(Sem sub-origem)";
 
@@ -18,7 +23,7 @@ export function applySubOrigensFilter(conds, params, types, subOrigens) {
 }
 
 export function buildPerformanceQuery({ from, to, emps, statuses, subOrigens }) {
-  const conds = ["DATE(deal_created_at) BETWEEN @from AND @to"];
+  const conds = ["DATE(dt_entrada) BETWEEN @from AND @to"];
   const params = { from, to };
   const types = {};
 
@@ -49,7 +54,7 @@ export function buildPerformanceQuery({ from, to, emps, statuses, subOrigens }) 
       SUM(is_proposta)               AS propostas,
       SUM(is_ganho)                  AS ganhos,
       SUM(IF(is_ganho = 1, valor_deal, 0)) AS receita_ganha
-    FROM ${tbl("stg_crm_deals")}
+    FROM ${LEAD_SOURCE_VIEW}
     WHERE ${conds.join(" AND ")}
     GROUP BY empreendimento
     ORDER BY leads DESC
@@ -59,7 +64,7 @@ export function buildPerformanceQuery({ from, to, emps, statuses, subOrigens }) 
 }
 
 export function buildPerformanceTotalsQuery({ from, to, emps, statuses, subOrigens }) {
-  const conds = ["DATE(deal_created_at) BETWEEN @from AND @to"];
+  const conds = ["DATE(dt_entrada) BETWEEN @from AND @to"];
   const params = { from, to };
   const types = {};
 
@@ -89,7 +94,7 @@ export function buildPerformanceTotalsQuery({ from, to, emps, statuses, subOrige
       COUNT(DISTINCT IF(is_proposta = 1, deal_id, NULL)) AS propostas,
       COUNT(DISTINCT IF(is_ganho = 1, deal_id, NULL)) AS ganhos,
       SUM(IF(is_ganho = 1, valor_deal, 0)) AS receita_ganha
-    FROM ${tbl("stg_crm_deals")}
+    FROM ${LEAD_SOURCE_VIEW}
     WHERE ${conds.join(" AND ")}
   `;
 

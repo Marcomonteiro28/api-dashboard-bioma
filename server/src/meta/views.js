@@ -350,8 +350,10 @@ export const VIEWS = {
           SPLIT(empreendimento, '||')[SAFE_OFFSET(0)],
           'Sem Empreendimento'
         ), '')) AS emp_stg,
+        MAX(is_aguardando_retorno) AS stg_is_aguardando_retorno,
         MAX(is_qualificado) AS stg_is_qualificado,
         MAX(is_agendamento) AS stg_is_agendamento,
+        MAX(is_transferido) AS stg_is_transferido,
         MAX(is_visita_confirmada) AS stg_is_visita_confirmada,
         MAX(is_visita) AS stg_is_visita,
         MAX(is_negociacao) AS stg_is_negociacao,
@@ -402,14 +404,21 @@ export const VIEWS = {
       d.master_list_form_id,
       d.contact_planta_interesse,
       d.contact_faixa_preco,
-      -- is_* flags pelo Kondado (stage-based) — alinha com Funil tab
-      stg.stg_is_qualificado AS is_qualificado,
-      stg.stg_is_agendamento AS is_agendamento,
-      stg.stg_is_visita_confirmada AS is_visita_confirmada,
-      stg.stg_is_visita AS is_visita,
-      stg.stg_is_negociacao AS is_negociacao,
-      stg.stg_is_proposta AS is_proposta,
-      stg.stg_is_ganho AS is_ganho,
+      -- valor + status do deal (pra unificar Funil e demais visoes)
+      d.valor AS valor_deal,
+      d.status AS deal_status,
+      -- is_* flags pelo Kondado (stage-based) — alinha com Funil tab.
+      -- COALESCE(... , 0) garante que deals fresh (ainda nao em stg) entrem como
+      -- leads brutos sem nenhuma flag positiva.
+      COALESCE(stg.stg_is_aguardando_retorno, 0) AS is_aguardando_retorno,
+      COALESCE(stg.stg_is_qualificado, 0) AS is_qualificado,
+      COALESCE(stg.stg_is_agendamento, 0) AS is_agendamento,
+      COALESCE(stg.stg_is_transferido, 0) AS is_transferido,
+      COALESCE(stg.stg_is_visita_confirmada, 0) AS is_visita_confirmada,
+      COALESCE(stg.stg_is_visita, 0) AS is_visita,
+      COALESCE(stg.stg_is_negociacao, 0) AS is_negociacao,
+      COALESCE(stg.stg_is_proposta, 0) AS is_proposta,
+      COALESCE(stg.stg_is_ganho, 0) AS is_ganho,
       CASE
         -- 1. Sub-origem explicita (manualmente preenchida)
         WHEN d.sub_origem = 'Meta ADS' THEN 'meta'

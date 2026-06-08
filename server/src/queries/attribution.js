@@ -1,11 +1,11 @@
 import { config } from "../config.js";
 import { applySubOrigensFilter } from "./performance.js";
 
-const crmTbl = "`" + config.project + "." + config.dataset + ".stg_crm_deals`";
+const crmTbl = "`" + config.project + "." + config.meta.dataset + ".vw_lead_source`";
 const metaView = "`" + config.project + "." + config.meta.dataset + ".vw_meta_spend_daily_emp`";
 
 export function buildAttributionQuery({ from, to, emps, statuses, subOrigens }) {
-  const crmConds = ["DATE(deal_created_at) BETWEEN @from AND @to"];
+  const crmConds = ["DATE(dt_entrada) BETWEEN @from AND @to"];
   const params = { from, to };
   const types = {};
 
@@ -26,7 +26,7 @@ export function buildAttributionQuery({ from, to, emps, statuses, subOrigens }) 
   const sql = `
     WITH crm AS (
       SELECT
-        empreendimento,
+        IFNULL(NULLIF(empreendimento, ''), '(Sem empreendimento)') AS empreendimento,
         COUNT(DISTINCT deal_id) AS leads,
         COUNT(DISTINCT contact_id) AS contatos_unicos,
         SUM(is_qualificado) AS qualificados,
