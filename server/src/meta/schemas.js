@@ -87,6 +87,11 @@ export const META_TABLES = {
     { name: "cpm", type: "FLOAT64" },
     { name: "ctr", type: "FLOAT64" },
     { name: "frequency", type: "FLOAT64" },
+    // Conversoes calculadas pelo Meta (mesmo "Results" do Business Manager).
+    // Soma: lead + onsite_conversion.lead_grouped (lead form) + cobre as principais
+    // acoes de conversao que o BM mostra como "Result" em campanhas de Lead Ads.
+    { name: "conversions", type: "INT64" },
+    { name: "cost_per_conversion", type: "FLOAT64" },
     { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
   ],
 };
@@ -121,4 +126,5 @@ export const ADCREATIVE_FIELDS = [
 export const INSIGHT_FIELDS = [
   "date_start", "ad_id", "adset_id", "campaign_id", "account_id",
   "impressions", "reach", "clicks", "spend", "cpc", "cpm", "ctr", "frequency",
+  "actions",
 ];

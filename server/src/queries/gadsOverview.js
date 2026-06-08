@@ -106,8 +106,13 @@ export function buildMediaPagaByEmpQuery({ from, to, emps }) {
     types.emps = ["STRING"];
   }
 
+  // Pegamos conversoes do Meta direto da meta_insights_daily (somando pelo
+  // empreendimento via vw_meta_campaign_attribution), ja que a view
+  // vw_meta_spend_daily_emp nao tem conversoes.
+  const metaCampAttrib = "`" + config.project + "." + config.meta.dataset + ".vw_meta_campaign_attribution`";
+  const metaInsightsTbl = "`" + config.project + "." + config.meta.dataset + ".meta_insights_daily`";
   const sql = `
-    WITH meta AS (
+    WITH meta_spend AS (
       SELECT
         empreendimento,
         SUM(gasto_brl) AS gasto_meta,
@@ -116,6 +121,25 @@ export function buildMediaPagaByEmpQuery({ from, to, emps }) {
       FROM ${metaView}
       WHERE dt BETWEEN @from AND @to ${empFilter}
       GROUP BY empreendimento
+    ),
+    meta_conv AS (
+      SELECT
+        ca.empreendimento,
+        SUM(mi.conversions) AS conv_meta
+      FROM ${metaInsightsTbl} mi
+      JOIN ${metaCampAttrib} ca ON ca.campaign_id = mi.campaign_id
+      WHERE mi.date_start BETWEEN @from AND @to ${empFilter.replace("a.empreendimento", "ca.empreendimento")}
+      GROUP BY empreendimento
+    ),
+    meta AS (
+      SELECT
+        ms.empreendimento,
+        ms.gasto_meta,
+        ms.impr_meta,
+        ms.cliques_meta,
+        IFNULL(mc.conv_meta, 0) AS conv_meta
+      FROM meta_spend ms
+      LEFT JOIN meta_conv mc ON mc.empreendimento = ms.empreendimento
     ),
     gads AS (
       SELECT
@@ -139,7 +163,9 @@ export function buildMediaPagaByEmpQuery({ from, to, emps }) {
       COALESCE(meta.cliques_meta, 0) AS cliques_meta,
       COALESCE(gads.cliques_gads, 0) AS cliques_gads,
       COALESCE(meta.cliques_meta, 0) + COALESCE(gads.cliques_gads, 0) AS cliques_total,
+      COALESCE(meta.conv_meta, 0) AS conv_meta,
       COALESCE(gads.conv_gads, 0) AS conv_gads,
+      COALESCE(meta.conv_meta, 0) + COALESCE(gads.conv_gads, 0) AS conv_total,
       SAFE_DIVIDE(
         COALESCE(meta.gasto_meta, 0) + COALESCE(gads.gasto_gads, 0),
         NULLIF(COALESCE(meta.cliques_meta, 0) + COALESCE(gads.cliques_gads, 0), 0)
@@ -147,7 +173,11 @@ export function buildMediaPagaByEmpQuery({ from, to, emps }) {
       SAFE_DIVIDE(
         COALESCE(meta.cliques_meta, 0) + COALESCE(gads.cliques_gads, 0),
         NULLIF(COALESCE(meta.impr_meta, 0) + COALESCE(gads.impr_gads, 0), 0)
-      ) * 100 AS ctr_total_pct
+      ) * 100 AS ctr_total_pct,
+      SAFE_DIVIDE(
+        COALESCE(meta.gasto_meta, 0) + COALESCE(gads.gasto_gads, 0),
+        NULLIF(COALESCE(meta.conv_meta, 0) + COALESCE(gads.conv_gads, 0), 0)
+      ) AS cost_per_conv_total_brl
     FROM meta
     FULL OUTER JOIN gads USING (empreendimento)
     WHERE COALESCE(meta.empreendimento, gads.empreendimento) IS NOT NULL

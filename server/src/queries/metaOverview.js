@@ -34,13 +34,15 @@ export function buildMetaOverviewQuery({ from, to, emps }) {
       SUM(i.impressions) AS impressoes,
       SUM(i.clicks) AS cliques,
       SUM(i.reach) AS reach,
+      SUM(i.conversions) AS conversoes,
       COUNT(DISTINCT i.date_start) AS dias_ativos,
       MIN(i.date_start) AS primeira_data,
       MAX(i.date_start) AS ultima_data,
       SAFE_DIVIDE(SUM(i.spend), NULLIF(SUM(i.clicks), 0)) AS cpc_brl,
       SAFE_DIVIDE(SUM(i.clicks), NULLIF(SUM(i.impressions), 0)) * 100 AS ctr_pct,
       SAFE_DIVIDE(SUM(i.spend), NULLIF(SUM(i.impressions), 0)) * 1000 AS cpm_brl,
-      SAFE_DIVIDE(SUM(i.impressions), NULLIF(SUM(i.reach), 0)) AS frequencia
+      SAFE_DIVIDE(SUM(i.impressions), NULLIF(SUM(i.reach), 0)) AS frequencia,
+      SAFE_DIVIDE(SUM(i.spend), NULLIF(SUM(i.conversions), 0)) AS cost_per_conv_brl
     FROM ${insightsTbl} i
     JOIN ${campaignsTbl} c ON c.id = i.campaign_id
     JOIN ${attribView} a ON a.campaign_id = i.campaign_id
@@ -78,10 +80,12 @@ export function buildMetaByEmpQuery({ from, to, emps }) {
       SUM(i.impressions) AS impressoes,
       SUM(i.clicks) AS cliques,
       SUM(i.reach) AS reach,
+      SUM(i.conversions) AS conversoes,
       COUNT(DISTINCT i.date_start) AS dias_ativos,
       SAFE_DIVIDE(SUM(i.spend), NULLIF(SUM(i.clicks), 0)) AS cpc_brl,
       SAFE_DIVIDE(SUM(i.clicks), NULLIF(SUM(i.impressions), 0)) * 100 AS ctr_pct,
-      SAFE_DIVIDE(SUM(i.spend), NULLIF(SUM(i.impressions), 0)) * 1000 AS cpm_brl
+      SAFE_DIVIDE(SUM(i.spend), NULLIF(SUM(i.impressions), 0)) * 1000 AS cpm_brl,
+      SAFE_DIVIDE(SUM(i.spend), NULLIF(SUM(i.conversions), 0)) AS cost_per_conv_brl
     FROM ${insightsTbl} i
     JOIN ${attribView} a ON a.campaign_id = i.campaign_id
     WHERE ${conds.join(" AND ")}

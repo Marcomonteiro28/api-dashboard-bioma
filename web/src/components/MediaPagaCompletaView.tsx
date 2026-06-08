@@ -60,6 +60,7 @@ export function MediaPagaCompletaView({
       acc.impr_gads += Number(r.impr_gads) || 0;
       acc.cliques_meta += Number(r.cliques_meta) || 0;
       acc.cliques_gads += Number(r.cliques_gads) || 0;
+      acc.conv_meta += Number(r.conv_meta) || 0;
       acc.conv_gads += Number(r.conv_gads) || 0;
       return acc;
     },
@@ -70,6 +71,7 @@ export function MediaPagaCompletaView({
       impr_gads: 0,
       cliques_meta: 0,
       cliques_gads: 0,
+      conv_meta: 0,
       conv_gads: 0,
     }
   );
@@ -77,9 +79,10 @@ export function MediaPagaCompletaView({
   const gastoTotal = totals.gasto_meta + totals.gasto_gads;
   const imprTotal = totals.impr_meta + totals.impr_gads;
   const cliquesTotal = totals.cliques_meta + totals.cliques_gads;
+  const convTotal = totals.conv_meta + totals.conv_gads;
   const ctr = imprTotal ? (cliquesTotal / imprTotal) * 100 : null;
-  const cpc = cliquesTotal ? gastoTotal / cliquesTotal : null;
   const cpm = imprTotal ? (gastoTotal / imprTotal) * 1000 : null;
+  const costPerConv = convTotal ? gastoTotal / convTotal : null;
 
   const showEmptyMsg = byEmp.length === 0;
 
@@ -104,7 +107,10 @@ export function MediaPagaCompletaView({
             { key: "cliques_total", label: "Cliques total" },
             { key: "ctr_total_pct", label: "CTR (%)" },
             { key: "cpc_total_brl", label: "CPC (R$)" },
+            { key: "conv_meta", label: "Conversões Meta" },
             { key: "conv_gads", label: "Conversões GAds" },
+            { key: "conv_total", label: "Conversões total" },
+            { key: "cost_per_conv_total_brl", label: "Custo/conv (R$)" },
           ]}
         />
       </div>
@@ -130,9 +136,11 @@ export function MediaPagaCompletaView({
           <div className="meta-kpi-sub">CTR {ctr == null ? "—" : fmtPct(ctr)}</div>
         </div>
         <div>
-          <div className="meta-kpi-label">CPC médio</div>
-          <div className="meta-kpi-value">{cpc == null ? "—" : fmtBRL(cpc)}</div>
-          <div className="meta-kpi-sub">{fmtNum(totals.conv_gads)} conversões (GAds)</div>
+          <div className="meta-kpi-label">Conversões total</div>
+          <div className="meta-kpi-value">{fmtNum(convTotal)}</div>
+          <div className="meta-kpi-sub">
+            Custo/conv: {costPerConv == null ? "—" : fmtBRL(costPerConv)} · Meta {fmtNum(totals.conv_meta)} + GAds {fmtNum(totals.conv_gads)}
+          </div>
         </div>
       </div>
 
@@ -199,8 +207,15 @@ export function MediaPagaCompletaView({
                 align="right"
               />
               <SortableHeader<MediaPagaByEmpRow>
-                label="Conv. GAds"
-                sortKey="conv_gads"
+                label="Conv. total"
+                sortKey="conv_total"
+                config={sortConfig}
+                onSort={requestSort}
+                align="right"
+              />
+              <SortableHeader<MediaPagaByEmpRow>
+                label="Custo/conv"
+                sortKey="cost_per_conv_total_brl"
                 config={sortConfig}
                 onSort={requestSort}
                 align="right"
@@ -224,12 +239,13 @@ export function MediaPagaCompletaView({
                 <td className="num">{fmtNum(r.cliques_total)}</td>
                 <td className="num">{pctOrDash(r.ctr_total_pct)}</td>
                 <td className="num">{moneyOr(r.cpc_total_brl)}</td>
-                <td className="num">{fmtNum(r.conv_gads)}</td>
+                <td className="num" title={`Meta ${r.conv_meta} + GAds ${r.conv_gads}`}>{fmtNum(r.conv_total)}</td>
+                <td className="num">{moneyOr(r.cost_per_conv_total_brl)}</td>
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 20, color: "var(--text-muted)" }}>
+                <td colSpan={9} style={{ textAlign: "center", padding: 20, color: "var(--text-muted)" }}>
                   Sem dados de mídia paga no período.
                 </td>
               </tr>

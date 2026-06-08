@@ -40,13 +40,14 @@ export function MetaPuroView({
       acc.impr += Number(r.impressoes) || 0;
       acc.cliques += Number(r.cliques) || 0;
       acc.reach += Number(r.reach) || 0;
+      acc.conv += Number(r.conversoes) || 0;
       return acc;
     },
-    { gasto: 0, impr: 0, cliques: 0, reach: 0 }
+    { gasto: 0, impr: 0, cliques: 0, reach: 0, conv: 0 }
   );
   const ctr = totals.impr ? (totals.cliques / totals.impr) * 100 : null;
   const cpc = totals.cliques ? totals.gasto / totals.cliques : null;
-  const cpm = totals.impr ? (totals.gasto / totals.impr) * 1000 : null;
+  const costPerConv = totals.conv ? totals.gasto / totals.conv : null;
 
   const empSorter = useSortableData<MetaByEmpRow>(byEmp, {
     key: "gasto_brl",
@@ -83,9 +84,11 @@ export function MetaPuroView({
             <div className="meta-kpi-sub">CTR {ctr == null ? "—" : fmtPct(ctr)}</div>
           </div>
           <div>
-            <div className="meta-kpi-label">Custo médio</div>
-            <div className="meta-kpi-value">{cpc == null ? "—" : fmtBRL(cpc)}</div>
-            <div className="meta-kpi-sub">CPC · CPM {cpm == null ? "—" : fmtBRL(cpm)}</div>
+            <div className="meta-kpi-label">Conversões (Meta)</div>
+            <div className="meta-kpi-value">{fmtNum(totals.conv)}</div>
+            <div className="meta-kpi-sub">
+              Custo/conv: {costPerConv == null ? "—" : fmtBRL(costPerConv)} · CPC {cpc == null ? "—" : fmtBRL(cpc)}
+            </div>
           </div>
         </div>
 
@@ -150,6 +153,20 @@ export function MetaPuroView({
                   align="right"
                 />
                 <SortableHeader<MetaByEmpRow>
+                  label="Conv."
+                  sortKey="conversoes"
+                  config={empSorter.sortConfig}
+                  onSort={empSorter.requestSort}
+                  align="right"
+                />
+                <SortableHeader<MetaByEmpRow>
+                  label="Custo/conv"
+                  sortKey="cost_per_conv_brl"
+                  config={empSorter.sortConfig}
+                  onSort={empSorter.requestSort}
+                  align="right"
+                />
+                <SortableHeader<MetaByEmpRow>
                   label="CPM"
                   sortKey="cpm_brl"
                   config={empSorter.sortConfig}
@@ -169,6 +186,8 @@ export function MetaPuroView({
                   <td className="num">{fmtNum(e.reach)}</td>
                   <td className="num">{pctOrDash(e.ctr_pct)}</td>
                   <td className="num">{moneyOr(e.cpc_brl)}</td>
+                  <td className="num">{e.conversoes ? fmtNum(e.conversoes) : <span className="num-zero">—</span>}</td>
+                  <td className="num">{moneyOr(e.cost_per_conv_brl)}</td>
                   <td className="num">{moneyOr(e.cpm_brl)}</td>
                 </tr>
               ))}
@@ -255,6 +274,20 @@ export function MetaPuroView({
                   align="right"
                 />
                 <SortableHeader<MetaCampaignRow>
+                  label="Conv."
+                  sortKey="conversoes"
+                  config={campSorter.sortConfig}
+                  onSort={campSorter.requestSort}
+                  align="right"
+                />
+                <SortableHeader<MetaCampaignRow>
+                  label="Custo/conv"
+                  sortKey="cost_per_conv_brl"
+                  config={campSorter.sortConfig}
+                  onSort={campSorter.requestSort}
+                  align="right"
+                />
+                <SortableHeader<MetaCampaignRow>
                   label="CTR"
                   sortKey="ctr_pct"
                   config={campSorter.sortConfig}
@@ -298,6 +331,8 @@ export function MetaPuroView({
                   <td className="num">{moneyOr(c.gasto_brl)}</td>
                   <td className="num">{fmtNum(c.impressoes)}</td>
                   <td className="num">{fmtNum(c.cliques)}</td>
+                  <td className="num">{c.conversoes ? fmtNum(c.conversoes) : <span className="num-zero">—</span>}</td>
+                  <td className="num">{moneyOr(c.cost_per_conv_brl)}</td>
                   <td className="num">{pctOrDash(c.ctr_pct)}</td>
                   <td className="num">{moneyOr(c.cpc_brl)}</td>
                   <td className="num">

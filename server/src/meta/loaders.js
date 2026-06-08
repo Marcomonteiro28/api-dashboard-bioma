@@ -189,22 +189,43 @@ export async function syncInsightsDaily() {
       time_increment: 1,
       time_range: JSON.stringify({ since, until }),
     });
-    return raw.map((r) => ({
-      date_start: r.date_start,
-      ad_id: r.ad_id,
-      adset_id: r.adset_id ?? null,
-      campaign_id: r.campaign_id ?? null,
-      account_id: r.account_id ?? acc.replace("act_", ""),
-      impressions: toInt(r.impressions),
-      reach: toInt(r.reach),
-      clicks: toInt(r.clicks),
-      spend: toFloat(r.spend),
-      cpc: toFloat(r.cpc),
-      cpm: toFloat(r.cpm),
-      ctr: toFloat(r.ctr),
-      frequency: toFloat(r.frequency),
-      synced_at: now,
-    }));
+    return raw.map((r) => {
+      // Conta acoes que o Meta considera "Result" pra campanhas de Lead Ads.
+      // Os action_types principais: 'lead' (lead form) e 'onsite_conversion.lead_grouped'.
+      // Cobre o que o Business Manager mostra como "Result" / "Resultado".
+      const actions = Array.isArray(r.actions) ? r.actions : [];
+      const LEAD_ACTION_TYPES = new Set([
+        "lead",
+        "onsite_conversion.lead_grouped",
+        "offsite_conversion.fb_pixel_lead",
+      ]);
+      let conversions = 0;
+      for (const a of actions) {
+        if (LEAD_ACTION_TYPES.has(a.action_type)) {
+          conversions += parseInt(a.value || 0, 10);
+        }
+      }
+      const spend = toFloat(r.spend) || 0;
+      const cost_per_conversion = conversions > 0 ? spend / conversions : null;
+      return {
+        date_start: r.date_start,
+        ad_id: r.ad_id,
+        adset_id: r.adset_id ?? null,
+        campaign_id: r.campaign_id ?? null,
+        account_id: r.account_id ?? acc.replace("act_", ""),
+        impressions: toInt(r.impressions),
+        reach: toInt(r.reach),
+        clicks: toInt(r.clicks),
+        spend: toFloat(r.spend),
+        cpc: toFloat(r.cpc),
+        cpm: toFloat(r.cpm),
+        ctr: toFloat(r.ctr),
+        frequency: toFloat(r.frequency),
+        conversions: conversions || null,
+        cost_per_conversion,
+        synced_at: now,
+      };
+    });
   });
 
   return replaceTableLoad(dataset.table("meta_insights_daily"), META_TABLES.meta_insights_daily, rows);

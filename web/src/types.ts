@@ -287,6 +287,7 @@ export interface MetaCampaignRow {
   impressoes: number;
   cliques: number;
   reach: number;
+  conversoes: number | null;
   dias_ativos: number;
   primeira_data: string | null;
   ultima_data: string | null;
@@ -294,6 +295,7 @@ export interface MetaCampaignRow {
   ctr_pct: number | null;
   cpm_brl: number | null;
   frequencia: number | null;
+  cost_per_conv_brl: number | null;
 }
 
 /** Linha do resumo Meta por empreendimento (raw, sem cross) */
@@ -304,10 +306,12 @@ export interface MetaByEmpRow {
   impressoes: number;
   cliques: number;
   reach: number;
+  conversoes: number | null;
   dias_ativos: number;
   cpc_brl: number | null;
   ctr_pct: number | null;
   cpm_brl: number | null;
+  cost_per_conv_brl: number | null;
 }
 
 /** Coverage do tracking AC por empreendimento (quantos leads tem campos preenchidos) */
@@ -370,7 +374,10 @@ export interface MediaPagaByEmpRow {
   cliques_meta: number;
   cliques_gads: number;
   cliques_total: number;
+  conv_meta: number;
   conv_gads: number;
+  conv_total: number;
   cpc_total_brl: number | null;
   ctr_total_pct: number | null;
+  cost_per_conv_total_brl: number | null;
 }
