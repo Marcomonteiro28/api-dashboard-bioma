@@ -304,17 +304,19 @@ export const VIEWS = {
     GROUP BY criativo, empreendimento
   `,
 
-  // Classificador de fonte por lead (proxy de atribuicao). Ordem das regras
-  // (do mais confiavel pro menos):
+  // Classificador de fonte por lead. Ordem das regras (do mais confiavel
+  // pro menos). Filosofia: NUNCA assumir Google sem evidencia — preferir
+  // 'desconhecido' a chutar fonte errada.
   //  1. sub_origem explicito ('Meta ADS', 'Google ADS', 'Placa', 'Telefone', 'Passagem')
   //  2. Tag de contato 'facebook-lead-ads-integration*' -> Meta alta (FB lead form)
   //  3. UTM source/medium aponta pra Google ou Meta (ads server-side)
   //  4. campanha_deal bate com nome de campanha Meta ou Google ja sincronizado
   //  5. Padrao de naming: 'RZ -' = Meta, 'RZ |' = Google, ID 10-15 dig = Google,
   //     palavras 'search'/'pmax' = Google
-  //  6. Tem campanha_deal mas nao bateu nada -> assume Meta (convencao predominante)
+  //  6. Tem campanha_deal mas nao bateu nada -> assume Meta (convencao predominante
+  //     Bioma, 70%+ dos leads do periodo)
   //  7. Tag 'lead-lp-*' ou 'lead-site' -> Meta (site form)
-  //  8. Sem campanha + sem sub_origem externa -> proxy Google (Master Contact List + LP)
+  //  8. NENHUM sinal -> 'desconhecido' (NAO assume Google, evita falso positivo)
   vw_lead_source: `
     WITH gads_norm AS (
       SELECT ${NORM_FN("name")} AS gads_name FROM ${tableRef("gads_campaigns")}
@@ -422,10 +424,8 @@ export const VIEWS = {
         WHEN d.campanha_deal IS NOT NULL AND d.campanha_deal != '' THEN 'meta'
         -- 8. Tag de LP/site
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)lead-lp-|lead-site') THEN 'meta'
-        -- 9. Master Contact List subscription com form_id => Google por LP (proxy)
-        WHEN d.master_list_first_sub IS NOT NULL AND d.master_list_form_id IS NOT NULL THEN 'google_proxy'
-        -- 10. Sem sinal -> proxy Google fallback
-        ELSE 'google_proxy'
+        -- 9. Sem nenhum sinal -> desconhecido (NAO chuta Google sem evidencia)
+        ELSE 'desconhecido'
       END AS fonte,
       CASE
         -- Alta: sinal explicito (sub_origem, tag FB, UTM no contato, match exato)
@@ -443,8 +443,7 @@ export const VIEWS = {
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'media'
         WHEN d.campanha_deal IS NOT NULL THEN 'media'
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)lead-lp-|lead-site') THEN 'media'
-        WHEN d.master_list_first_sub IS NOT NULL AND d.master_list_form_id IS NOT NULL THEN 'media'
-        -- Baixa: proxy puro
+        -- Baixa: sem evidencia
         ELSE 'baixa'
       END AS fonte_confianca
     FROM ${viewName("vw_ac_deals_enriched")} d

@@ -245,7 +245,7 @@ export type MarketingView = "completa" | "meta_puro" | "google_puro" | "origem" 
 export type LeadFonte =
   | "meta"
   | "google"
-  | "google_proxy"
+  | "desconhecido"
   | "externo_placa"
   | "externo_telefone"
   | "externo_passagem";

@@ -7,7 +7,7 @@ import { ExportButton } from "./ExportButton";
 const FONTE_LABEL: Record<LeadFonte, string> = {
   meta: "Meta",
   google: "Google",
-  google_proxy: "Google (proxy)",
+  desconhecido: "Desconhecido / Orgânico",
   externo_placa: "Externo · Placa",
   externo_telefone: "Externo · Telefone",
   externo_passagem: "Externo · Passagem",
@@ -16,10 +16,10 @@ const FONTE_LABEL: Record<LeadFonte, string> = {
 const FONTE_COLOR: Record<LeadFonte, string> = {
   meta: "#3b5998",
   google: "#D3601E",
-  google_proxy: "#FFBC7D",
+  desconhecido: "#7A7A7A",
   externo_placa: "#805D47",
   externo_telefone: "#A88160",
-  externo_passagem: "#7A7A7A",
+  externo_passagem: "#444",
 };
 
 const fonteLabel = (f: string) => FONTE_LABEL[f as LeadFonte] || f;

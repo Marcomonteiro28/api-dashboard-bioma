@@ -238,7 +238,7 @@ h1 {
 }
 .fonte-tag.fonte-meta { background: #DCE6F2; color: #3b5998; }
 .fonte-tag.fonte-google { background: #FFDDC4; color: #D3601E; }
-.fonte-tag.fonte-google_proxy { background: #FFF1E2; color: #B8743F; }
+.fonte-tag.fonte-desconhecido { background: #EEE; color: #666; }
 .fonte-tag.fonte-externo_placa { background: #EBE0D5; color: #805D47; }
 .fonte-tag.fonte-externo_telefone { background: #EEE4D8; color: #A88160; }
 .fonte-tag.fonte-externo_passagem { background: #EAEAEA; color: #555; }
