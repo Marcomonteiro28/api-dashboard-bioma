@@ -123,7 +123,17 @@ export const VIEWS = {
         MAX(IF(m.perstag = 'PRIMEIRO_EVENTO_CONVERSO', d.field_value, NULL)) AS c_primeiro_evento_conversao,
         MAX(IF(m.perstag = 'LTIMO_EVENTO_CONVERSO', d.field_value, NULL)) AS c_ultimo_evento_conversao,
         MAX(IF(m.perstag = 'QUANTIDADE_DE_CONVERSES', d.field_value, NULL)) AS c_quantidade_conversoes,
-        MAX(IF(m.perstag = 'CONTACT_EMPREENDIMENTO', d.field_value, NULL)) AS c_empreendimento
+        MAX(IF(m.perstag = 'CONTACT_EMPREENDIMENTO', d.field_value, NULL)) AS c_empreendimento,
+        -- "Qual planta te interessa?" eh perguntado APENAS nas LPs do Google.
+        -- Sinal forte de Google quando preenchido.
+        COALESCE(
+          MAX(IF(m.perstag = 'QUAL_PLANTA_TE_INTERESSA', d.field_value, NULL)),
+          MAX(IF(m.perstag = 'QUAL_PLANTA_TE_INTERESSA_1', d.field_value, NULL))
+        ) AS c_planta_interesse,
+        -- "Mensagem" preenchida tb sugere LP do Google (campo de form do Google LP)
+        MAX(IF(m.perstag = 'MENSAGEM', d.field_value, NULL)) AS c_mensagem,
+        -- Faixa de preco apenas em LPs do Google
+        MAX(IF(m.perstag = 'FAIXA_PREO', d.field_value, NULL)) AS c_faixa_preco
       FROM ${tableRef("ac_contact_cf_data")} d
       JOIN ${tableRef("ac_contact_cf_meta")} m ON m.id = d.field_id
       GROUP BY d.contact_id
@@ -238,6 +248,8 @@ export const VIEWS = {
       ccf.c_ultimo_evento_conversao AS contact_ultimo_evento,
       ccf.c_quantidade_conversoes AS contact_qtd_conversoes,
       ccf.c_empreendimento AS contact_empreendimento_cf,
+      ccf.c_planta_interesse AS contact_planta_interesse,
+      ccf.c_faixa_preco AS contact_faixa_preco,
       ml.master_list_first_sub,
       ml.master_list_form_id
     FROM ${tableRef("ac_deals")} d
@@ -310,13 +322,15 @@ export const VIEWS = {
   //  1. sub_origem explicito ('Meta ADS', 'Google ADS', 'Placa', 'Telefone', 'Passagem')
   //  2. Tag de contato 'facebook-lead-ads-integration*' -> Meta alta (FB lead form)
   //  3. UTM source/medium aponta pra Google ou Meta (ads server-side)
-  //  4. campanha_deal bate com nome de campanha Meta ou Google ja sincronizado
-  //  5. Padrao de naming: 'RZ -' = Meta, 'RZ |' = Google, ID 10-15 dig = Google,
+  //  4. NOVO: contact_planta_interesse preenchido -> Google alta (perguntado
+  //     APENAS nas LPs do Google, sinal exclusivo)
+  //  5. campanha_deal bate com nome de campanha Meta ou Google ja sincronizado
+  //  6. Padrao de naming: 'RZ -' = Meta, 'RZ |' = Google, ID 10-15 dig = Google,
   //     palavras 'search'/'pmax' = Google
-  //  6. Tem campanha_deal mas nao bateu nada -> assume Meta (convencao predominante
+  //  7. Tem campanha_deal mas nao bateu nada -> assume Meta (convencao predominante
   //     Bioma, 70%+ dos leads do periodo)
-  //  7. Tag 'lead-lp-*' ou 'lead-site' -> Meta (site form)
-  //  8. NENHUM sinal -> 'desconhecido' (NAO assume Google, evita falso positivo)
+  //  8. Tag 'lead-lp-*' ou 'lead-site' -> Meta (site form)
+  //  9. NENHUM sinal -> 'desconhecido' (NAO assume Google, evita falso positivo)
   vw_lead_source: `
     WITH gads_norm AS (
       SELECT ${NORM_FN("name")} AS gads_name FROM ${tableRef("gads_campaigns")}
@@ -386,6 +400,8 @@ export const VIEWS = {
       d.contact_first_utm_content,
       d.master_list_first_sub,
       d.master_list_form_id,
+      d.contact_planta_interesse,
+      d.contact_faixa_preco,
       -- is_* flags pelo Kondado (stage-based) — alinha com Funil tab
       stg.stg_is_qualificado AS is_qualificado,
       stg.stg_is_agendamento AS is_agendamento,
@@ -409,22 +425,24 @@ export const VIEWS = {
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'google'
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_medium,'')), r'(paid_social|social_ads|fb-ads|paidsocial)') THEN 'meta'
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_first_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'google'
-        -- 4. Match exato de campanha contact_utm_campaign com Meta/Google
+        -- 4. Planta de interesse preenchida -> Google (perguntado SO nas LPs do Google)
+        WHEN d.contact_planta_interesse IS NOT NULL AND d.contact_planta_interesse != '' THEN 'google'
+        -- 5. Match exato de campanha contact_utm_campaign com Meta/Google
         WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT gads_name FROM gads_norm) THEN 'google'
         WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT meta_name FROM meta_norm) THEN 'meta'
-        -- 5. Match exato campanha_deal
+        -- 6. Match exato campanha_deal
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'google'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT meta_name FROM meta_norm) THEN 'meta'
-        -- 6. Padrao de naming
+        -- 7. Padrao de naming
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*\\|') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)\\b(search|pmax)\\b') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'^[0-9]{10,15}$') THEN 'google'
         WHEN REGEXP_CONTAINS(d.campanha_deal, r'(?i)^RZ\\s*-') THEN 'meta'
-        -- 7. Tem campanha (assume Meta — convencao predominante)
+        -- 8. Tem campanha (assume Meta — convencao predominante)
         WHEN d.campanha_deal IS NOT NULL AND d.campanha_deal != '' THEN 'meta'
-        -- 8. Tag de LP/site
+        -- 9. Tag de LP/site
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)lead-lp-|lead-site') THEN 'meta'
-        -- 9. Sem nenhum sinal -> desconhecido (NAO chuta Google sem evidencia)
+        -- 10. Sem nenhum sinal -> desconhecido (NAO chuta Google sem evidencia)
         ELSE 'desconhecido'
       END AS fonte,
       CASE
@@ -434,6 +452,7 @@ export const VIEWS = {
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_source,'')), r'(google|googleads|gads|facebook|fb|instagram|ig|meta)') THEN 'alta'
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_medium,'')), r'(cpc|search|pmax|performance|paid_social|social_ads|fb-ads|paidsocial)') THEN 'alta'
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_first_utm_medium,'')), r'(cpc|search|pmax|performance)') THEN 'alta'
+        WHEN d.contact_planta_interesse IS NOT NULL AND d.contact_planta_interesse != '' THEN 'alta'
         WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT gads_name FROM gads_norm) THEN 'alta'
         WHEN ${NORM_FN("d.contact_utm_campaign")} IN (SELECT meta_name FROM meta_norm) THEN 'alta'
         WHEN ${NORM_FN("d.campanha_deal")} IN (SELECT gads_name FROM gads_norm) THEN 'alta'

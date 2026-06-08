@@ -4,7 +4,7 @@ import { applySubOrigensFilter } from "./performance.js";
 const VALID_FONTES = new Set([
   "meta",
   "google",
-  "google_proxy",
+  "desconhecido",
   "externo_placa",
   "externo_telefone",
   "externo_passagem",
