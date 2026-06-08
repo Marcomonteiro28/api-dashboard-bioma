@@ -417,6 +417,9 @@ export const VIEWS = {
         WHEN d.sub_origem = 'Placa' THEN 'externo_placa'
         WHEN d.sub_origem = 'Telefone' THEN 'externo_telefone'
         WHEN d.sub_origem = 'Passagem' THEN 'externo_passagem'
+        -- 1.1 Origem (custom field do deal, preenchido pela automacao no AC)
+        WHEN d.origem = 'Social pago' THEN 'meta'
+        WHEN d.origem = 'Busca paga' THEN 'google'
         -- 2. Tag de FB lead ads integration (automacao quando lead converte em form FB)
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)facebook-lead-ads-integration') THEN 'meta'
         -- 3. UTM no CONTATO (sinal forte — first-touch ou last-touch)
@@ -448,6 +451,7 @@ export const VIEWS = {
       CASE
         -- Alta: sinal explicito (sub_origem, tag FB, UTM no contato, match exato)
         WHEN d.sub_origem IN ('Meta ADS','Google ADS','Placa','Telefone','Passagem') THEN 'alta'
+        WHEN d.origem IN ('Social pago','Busca paga') THEN 'alta'
         WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)facebook-lead-ads-integration') THEN 'alta'
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_source,'')), r'(google|googleads|gads|facebook|fb|instagram|ig|meta)') THEN 'alta'
         WHEN REGEXP_CONTAINS(LOWER(IFNULL(d.contact_utm_medium,'')), r'(cpc|search|pmax|performance|paid_social|social_ads|fb-ads|paidsocial)') THEN 'alta'

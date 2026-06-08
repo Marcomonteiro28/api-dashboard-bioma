@@ -190,18 +190,15 @@ export async function syncInsightsDaily() {
       time_range: JSON.stringify({ since, until }),
     });
     return raw.map((r) => {
-      // Conta acoes que o Meta considera "Result" pra campanhas de Lead Ads.
-      // Os action_types principais: 'lead' (lead form) e 'onsite_conversion.lead_grouped'.
-      // Cobre o que o Business Manager mostra como "Result" / "Resultado".
+      // Conta apenas o action_type "lead" — supertipo agregado do Meta que ja
+      // inclui Lead Forms (onsite_conversion.lead_grouped) E LP via pixel
+      // (offsite_conversion.fb_pixel_lead). Somar os tres infla 2x: validado em
+      // 25-29/mai onde lead=66 == onsite(63) + offsite(3). Esse e o numero que
+      // o Business Manager mostra como "Resultados" para campanhas de leads.
       const actions = Array.isArray(r.actions) ? r.actions : [];
-      const LEAD_ACTION_TYPES = new Set([
-        "lead",
-        "onsite_conversion.lead_grouped",
-        "offsite_conversion.fb_pixel_lead",
-      ]);
       let conversions = 0;
       for (const a of actions) {
-        if (LEAD_ACTION_TYPES.has(a.action_type)) {
+        if (a.action_type === "lead") {
           conversions += parseInt(a.value || 0, 10);
         }
       }
