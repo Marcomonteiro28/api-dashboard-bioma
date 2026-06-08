@@ -325,18 +325,23 @@ export const VIEWS = {
       WHERE name IS NOT NULL
     ),
     stg_emp AS (
-      -- Kondado's empreendimento como fallback final
+      -- Kondado's empreendimento + is_* flags (stage-based, mais correto que data-based)
       -- ATENCAO: stg_crm_deals tem deal_id duplicado (mesmo deal em multiplos
-      -- empreendimentos), entao agregamos com ANY_VALUE pra evitar JOIN inflar.
+      -- empreendimentos), entao agregamos com ANY_VALUE/MAX pra evitar JOIN inflar.
       SELECT
         CAST(deal_id AS STRING) AS deal_id,
         ANY_VALUE(NULLIF(NULLIF(
           SPLIT(empreendimento, '||')[SAFE_OFFSET(0)],
           'Sem Empreendimento'
-        ), '')) AS emp_stg
+        ), '')) AS emp_stg,
+        MAX(is_qualificado) AS stg_is_qualificado,
+        MAX(is_agendamento) AS stg_is_agendamento,
+        MAX(is_visita_confirmada) AS stg_is_visita_confirmada,
+        MAX(is_visita) AS stg_is_visita,
+        MAX(is_negociacao) AS stg_is_negociacao,
+        MAX(is_proposta) AS stg_is_proposta,
+        MAX(is_ganho) AS stg_is_ganho
       FROM \`${config.project}.${config.dataset}.stg_crm_deals\`
-      WHERE empreendimento IS NOT NULL
-        AND empreendimento NOT IN ('Sem Empreendimento','')
       GROUP BY deal_id
     )
     SELECT
@@ -379,6 +384,14 @@ export const VIEWS = {
       d.contact_first_utm_content,
       d.master_list_first_sub,
       d.master_list_form_id,
+      -- is_* flags pelo Kondado (stage-based) — alinha com Funil tab
+      stg.stg_is_qualificado AS is_qualificado,
+      stg.stg_is_agendamento AS is_agendamento,
+      stg.stg_is_visita_confirmada AS is_visita_confirmada,
+      stg.stg_is_visita AS is_visita,
+      stg.stg_is_negociacao AS is_negociacao,
+      stg.stg_is_proposta AS is_proposta,
+      stg.stg_is_ganho AS is_ganho,
       CASE
         -- 1. Sub-origem explicita (manualmente preenchida)
         WHEN d.sub_origem = 'Meta ADS' THEN 'meta'

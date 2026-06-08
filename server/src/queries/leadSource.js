@@ -30,19 +30,20 @@ export function buildSourceBreakdownQuery({ from, to, emps, statuses, subOrigens
       fonte,
       COUNT(DISTINCT deal_id) AS leads,
       COUNT(DISTINCT contact_id) AS contatos_unicos,
-      COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)) AS qualificados,
-      COUNT(DISTINCT IF(dt_visita_agendada IS NOT NULL, deal_id, NULL)) AS agendamentos,
-      COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)) AS visitas,
-      COUNT(DISTINCT IF(status = 1, deal_id, NULL)) AS ganhos,
+      -- Usa is_* do stg (stage-based, alinhado com Kondado/Funil tab)
+      COUNT(DISTINCT IF(is_qualificado = 1, deal_id, NULL)) AS qualificados,
+      COUNT(DISTINCT IF(is_agendamento = 1, deal_id, NULL)) AS agendamentos,
+      COUNT(DISTINCT IF(is_visita = 1, deal_id, NULL)) AS visitas,
+      COUNT(DISTINCT IF(is_ganho = 1, deal_id, NULL)) AS ganhos,
       COUNTIF(fonte_confianca = 'alta') AS confianca_alta,
       COUNTIF(fonte_confianca = 'media') AS confianca_media,
       COUNTIF(fonte_confianca = 'baixa') AS confianca_baixa,
       SAFE_DIVIDE(
-        COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)),
+        COUNT(DISTINCT IF(is_qualificado = 1, deal_id, NULL)),
         COUNT(DISTINCT deal_id)
       ) * 100 AS pct_qualif,
       SAFE_DIVIDE(
-        COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)),
+        COUNT(DISTINCT IF(is_visita = 1, deal_id, NULL)),
         COUNT(DISTINCT deal_id)
       ) * 100 AS pct_visita
     FROM ${view}
@@ -80,9 +81,9 @@ export function buildSourceByEmpQuery({ from, to, emps, statuses, subOrigens }) 
       fonte,
       COUNT(DISTINCT deal_id) AS leads,
       COUNT(DISTINCT contact_id) AS contatos_unicos,
-      COUNT(DISTINCT IF(dt_qualificado IS NOT NULL, deal_id, NULL)) AS qualificados,
-      COUNT(DISTINCT IF(dt_visita_realizada IS NOT NULL, deal_id, NULL)) AS visitas,
-      COUNT(DISTINCT IF(status = 1, deal_id, NULL)) AS ganhos
+      COUNT(DISTINCT IF(is_qualificado = 1, deal_id, NULL)) AS qualificados,
+      COUNT(DISTINCT IF(is_visita = 1, deal_id, NULL)) AS visitas,
+      COUNT(DISTINCT IF(is_ganho = 1, deal_id, NULL)) AS ganhos
     FROM ${view}
     WHERE ${conds.join(" AND ")}
       AND empreendimento IS NOT NULL
