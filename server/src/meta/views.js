@@ -264,7 +264,9 @@ export const VIEWS = {
     -- status incluindo Aberto/Negociacao). Convite Evento e outros sao excluidos.
     -- Deals que VIERAM de Convite Evento mas migraram pra Pre Vendas/Vendas
     -- sao mantidos (filtro por pipeline atual, nao historico).
-    WHERE p.title IN ('Pre Vendas', 'Vendas')
+    -- ATENCAO: pipelines foram renomeados em 2026-06 com prefixo 'Bioma'.
+    -- Filtro suporta os nomes antigo e novo pra robustez.
+    WHERE p.title IN ('Pre Vendas', 'Vendas', 'Bioma Pre Vendas', 'Bioma Vendas')
   `,
 
   vw_lead_creative: `
