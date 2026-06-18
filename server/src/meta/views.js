@@ -267,6 +267,18 @@ export const VIEWS = {
     -- ATENCAO: pipelines foram renomeados em 2026-06 com prefixo 'Bioma'.
     -- Filtro suporta os nomes antigo e novo pra robustez.
     WHERE p.title IN ('Pre Vendas', 'Vendas', 'Bioma Pre Vendas', 'Bioma Vendas')
+      -- Exclui deals de TESTE da integracao (88 em fev/2026 + esparsos).
+      -- Padroes seguros (LIKE com palavras em portugues evita falso positivo
+      -- em sobrenomes tipo "Castelo"). Mantem deals com placeholders
+      -- @sem-email.com / @sememail.com (sao leads reais sem email).
+      AND NOT (
+        LOWER(IFNULL(c.email, '')) LIKE '%@teste.com%'
+        OR LOWER(IFNULL(c.email, '')) LIKE '%@razconsulting.com.br%'
+        OR LOWER(IFNULL(d.title, '')) LIKE '%teste%'
+        OR LOWER(IFNULL(d.title, '')) LIKE '%testor%'
+        OR LOWER(IFNULL(c.first_name, '')) LIKE '%teste%'
+        OR LOWER(IFNULL(c.first_name, '')) LIKE '%testor%'
+      )
   `,
 
   vw_lead_creative: `
