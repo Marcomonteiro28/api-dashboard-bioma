@@ -265,8 +265,15 @@ export const VIEWS = {
     -- Deals que VIERAM de Convite Evento mas migraram pra Pre Vendas/Vendas
     -- sao mantidos (filtro por pipeline atual, nao historico).
     -- ATENCAO: pipelines foram renomeados em 2026-06 com prefixo 'Bioma'.
-    -- Filtro suporta os nomes antigo e novo pra robustez.
-    WHERE p.title IN ('Pre Vendas', 'Vendas', 'Bioma Pre Vendas', 'Bioma Vendas')
+    -- Filtro robusto contra:
+    -- 1. Nomes antigos (Pre Vendas, Vendas) vs novos (com prefixo Bioma)
+    -- 2. Acento — API AC retorna 'Bioma Pré Vendas', Kondado normaliza pra 'Pre'.
+    --    Match por NORMALIZE remove acentos antes de comparar.
+    WHERE NORMALIZE(p.title, NFD) IN (
+      'Pre Vendas', 'Vendas',
+      'Bioma Pre Vendas', 'Bioma Vendas',
+      'Bioma Pré Vendas'  -- caso Kondado pare de normalizar
+    )
       -- Exclui deals de TESTE da integracao (88 em fev/2026 + esparsos).
       -- Padroes seguros (LIKE com palavras em portugues evita falso positivo
       -- em sobrenomes tipo "Castelo"). Mantem deals com placeholders
