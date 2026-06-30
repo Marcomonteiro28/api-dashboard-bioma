@@ -253,3 +253,27 @@ export async function syncContactLists() {
   }));
   return replaceAll("ac_contact_lists", rows);
 }
+
+export async function syncPipelines() {
+  const now = new Date().toISOString();
+  const raw = await fetchAllPaginated("/dealGroups", "dealGroups");
+  const rows = raw.map((g) => ({
+    id: String(g.id),
+    title: g.title ?? null,
+    synced_at: now,
+  }));
+  return replaceAll("ac_pipelines", rows);
+}
+
+export async function syncStages() {
+  const now = new Date().toISOString();
+  const raw = await fetchAllPaginated("/dealStages", "dealStages");
+  const rows = raw.map((s) => ({
+    id: String(s.id),
+    title: s.title ?? null,
+    pipeline_id: s.group ? String(s.group) : null,
+    stage_order: toInt(s.order),
+    synced_at: now,
+  }));
+  return replaceAll("ac_stages", rows);
+}

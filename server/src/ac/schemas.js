@@ -111,4 +111,16 @@ export const AC_TABLES = {
     { name: "form_id", type: "STRING" },
     { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
   ],
+  ac_pipelines: [
+    { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "title", type: "STRING" },
+    { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
+  ],
+  ac_stages: [
+    { name: "id", type: "STRING", mode: "REQUIRED" },
+    { name: "title", type: "STRING" },
+    { name: "pipeline_id", type: "STRING" },
+    { name: "stage_order", type: "INT64" },
+    { name: "synced_at", type: "TIMESTAMP", mode: "REQUIRED" },
+  ],
 };

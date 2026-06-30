@@ -21,7 +21,7 @@ export function KpiGrid({
 }) {
   const cards: { label: string; value: number; prev: number; estagio: Estagio }[] = [
     { label: "Leads", value: cur.leads, prev: prev.leads, estagio: "leads" },
-    { label: "Qualificados", value: cur.qualificados, prev: prev.qualificados, estagio: "qualificados" },
+    { label: "Em Atendimento", value: cur.qualificados, prev: prev.qualificados, estagio: "qualificados" },
     {
       label: "Agendamentos",
       value: cur.agendamentos,

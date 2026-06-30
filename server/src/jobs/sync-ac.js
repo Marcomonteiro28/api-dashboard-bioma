@@ -11,6 +11,8 @@ import {
   syncContactCustomFieldsData,
   syncLists,
   syncContactLists,
+  syncPipelines,
+  syncStages,
 } from "../ac/loaders.js";
 
 async function step(name, fn) {
@@ -65,6 +67,8 @@ async function main() {
   await step("contact_cf_data", syncContactCustomFieldsData);
   await step("lists", syncLists);
   await step("contact_lists", syncContactLists);
+  await step("pipelines", syncPipelines);
+  await step("stages", syncStages);
 
   console.log(JSON.stringify({
     ts: new Date().toISOString(),

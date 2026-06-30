@@ -74,10 +74,10 @@ export function DealsModal(props: DealsModalProps) {
     return <span className="badge badge-aberto">Aberto</span>;
   };
   const pipelineBadge = (p: string) =>
-    p === "Vendas" ? (
-      <span className="badge badge-vendas">Vendas</span>
+    p === "Bozza Nova" ? (
+      <span className="badge badge-vendas">Bozza Nova</span>
     ) : (
-      <span className="badge badge-pre">Pré-vendas</span>
+      <span className="badge badge-pre">Bioma Vendas</span>
     );
   const prioridadeBadge = (p: string | null) => {
     if (!p) return "—";

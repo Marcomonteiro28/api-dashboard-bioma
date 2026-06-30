@@ -66,19 +66,16 @@ export const VIEWS = {
 
   vw_status_atual_live: `
     SELECT
-      s.dealstages_title AS status,
-      s.dealstages_order AS stage_rank,
-      CASE WHEN p.title = 'Vendas' THEN 'vendas'
-           WHEN p.title = 'Pre Vendas' THEN 'pre'
-           ELSE LOWER(p.title) END AS funil,
+      s.title AS status,
+      s.stage_order AS stage_rank,
+      LOWER(p.title) AS funil,
       p.title AS pipeline,
       COUNT(*) AS qtd
     FROM ${tableRef("ac_deals")} d
-    JOIN \`${config.project}.raw_data.activecampaign_pipelines_dealstages\` s
-      ON s.dealstages_id = CAST(d.stage_id AS INT64)
-    JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
-      ON p.id = CAST(d.pipeline_id AS INT64)
+    JOIN ${tableRef("ac_stages")} s ON s.id = d.stage_id
+    JOIN ${tableRef("ac_pipelines")} p ON p.id = d.pipeline_id
     WHERE d.status = 0 AND COALESCE(d.is_disabled, FALSE) = FALSE
+      AND d.pipeline_id IN ('1', '18')  -- esteiras ativas: Bioma Vendas (1) + Bozza Nova (18)
     GROUP BY status, stage_rank, funil, pipeline
   `,
 
@@ -188,7 +185,15 @@ export const VIEWS = {
         MAX(IF(field_label = 'dt_entrada_qualificados', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_qualificado,
         MAX(IF(field_label = 'dt_entrada_visita_agendada', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_visita_agendada,
         MAX(IF(field_label = 'dt_entrada_visita_realizada', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_visita_realizada,
-        MAX(IF(field_label = 'dt_fechamento', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_fechamento
+        MAX(IF(field_label = 'dt_fechamento', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_fechamento,
+        MAX(IF(field_label = 'dt_entrada_visita_confirmada', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_visita_confirmada,
+        MAX(IF(field_label = 'dt_entrada_negociacao', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_negociacao,
+        MAX(IF(field_label = 'dt_entrada_proposta', SAFE_CAST(field_value AS TIMESTAMP), NULL)) AS dt_proposta,
+        MAX(IF(field_label = ' Metragem (m²)', field_value, NULL)) AS metragem_m2,
+        MAX(IF(field_label = 'Prioridade', field_value, NULL)) AS prioridade,
+        MAX(IF(field_label = 'Gatilho para MQL', field_value, NULL)) AS gatilho_mql,
+        MAX(IF(field_label = 'SDR Responsável', field_value, NULL)) AS sdr_responsavel,
+        MAX(IF(field_label = 'Valor Esperado (R$)', SAFE_CAST(field_value AS FLOAT64), NULL)) AS valor_esperado
       FROM cf_joined
       GROUP BY deal_id
     )
@@ -225,7 +230,15 @@ export const VIEWS = {
       cf.dt_qualificado,
       cf.dt_visita_agendada,
       cf.dt_visita_realizada,
+      cf.dt_visita_confirmada,
+      cf.dt_negociacao,
+      cf.dt_proposta,
       cf.dt_fechamento,
+      cf.metragem_m2,
+      cf.prioridade,
+      cf.gatilho_mql,
+      cf.sdr_responsavel,
+      cf.valor_esperado,
       c.email AS contact_email,
       c.first_name AS contact_first_name,
       c.last_name AS contact_last_name,
@@ -258,8 +271,8 @@ export const VIEWS = {
     LEFT JOIN contact_tags_agg tags ON tags.contact_id = d.contact_id
     LEFT JOIN contact_cf_pivot ccf ON ccf.contact_id = d.contact_id
     LEFT JOIN master_list ml ON ml.contact_id = d.contact_id
-    LEFT JOIN \`${config.project}.raw_data.activecampaign_pipelines\` p
-      ON p.id = CAST(d.pipeline_id AS INT64)
+    LEFT JOIN ${tableRef("ac_pipelines")} p
+      ON p.id = d.pipeline_id
     -- Alinha com stg_crm_deals (Kondado): incluem Pre Vendas + Vendas (todos
     -- status incluindo Aberto/Negociacao). Convite Evento e outros sao excluidos.
     -- Deals que VIERAM de Convite Evento mas migraram pra Pre Vendas/Vendas
@@ -269,11 +282,7 @@ export const VIEWS = {
     -- 1. Nomes antigos (Pre Vendas, Vendas) vs novos (com prefixo Bioma)
     -- 2. Acento — API AC retorna 'Bioma Pré Vendas', Kondado normaliza pra 'Pre'.
     --    Match por NORMALIZE remove acentos antes de comparar.
-    WHERE NORMALIZE(p.title, NFD) IN (
-      'Pre Vendas', 'Vendas',
-      'Bioma Pre Vendas', 'Bioma Vendas',
-      'Bioma Pré Vendas'  -- caso Kondado pare de normalizar
-    )
+    WHERE d.pipeline_id IN ('1', '18')  -- esteiras ativas: Bioma Vendas (1) + Bozza Nova (18); exclui (migrado) e Convite Evento
       -- Exclui deals de TESTE da integracao (88 em fev/2026 + esparsos).
       -- Padroes seguros (LIKE com palavras em portugues evita falso positivo
       -- em sobrenomes tipo "Castelo"). Mantem deals com placeholders
@@ -361,27 +370,28 @@ export const VIEWS = {
       SELECT ${NORM_FN("name")} AS meta_name FROM ${tableRef("meta_campaigns")}
       WHERE name IS NOT NULL
     ),
-    stg_emp AS (
-      -- Kondado's empreendimento + is_* flags (stage-based, mais correto que data-based)
-      -- ATENCAO: stg_crm_deals tem deal_id duplicado (mesmo deal em multiplos
-      -- empreendimentos), entao agregamos com ANY_VALUE/MAX pra evitar JOIN inflar.
+    deal_depth AS (
+      -- Profundidade no funil de venda calculada da NOSSA fonte (ac_stages, ja na
+      -- estrutura nova), com fallback nos carimbos dt_* pra deals em Contato Futuro
+      -- ou perdidos que ja passaram por etapas. Substitui as flags is_* que vinham
+      -- do stg_crm_deals (Kondado), que ficou DEFASADO pos-reestruturacao 2026-06
+      -- (ainda em 'Pre Vendas'/etapas antigas, is_visita/negociacao/proposta zerados).
+      -- Eixo de venda: 0 Entrada, 1 Aguardando, 2 Em Atendimento, 3 Visita Agendada,
+      -- 4 Visita Realizada, 5 Qualificado(novo), 6 Em Negociacao, 7 Em Contrato,
+      -- 8 Assinado. Contato Futuro e desvio (-1), resolvido pelos carimbos dt_*.
       SELECT
-        CAST(deal_id AS STRING) AS deal_id,
-        ANY_VALUE(NULLIF(NULLIF(
-          SPLIT(empreendimento, '||')[SAFE_OFFSET(0)],
-          'Sem Empreendimento'
-        ), '')) AS emp_stg,
-        MAX(is_aguardando_retorno) AS stg_is_aguardando_retorno,
-        MAX(is_qualificado) AS stg_is_qualificado,
-        MAX(is_agendamento) AS stg_is_agendamento,
-        MAX(is_transferido) AS stg_is_transferido,
-        MAX(is_visita_confirmada) AS stg_is_visita_confirmada,
-        MAX(is_visita) AS stg_is_visita,
-        MAX(is_negociacao) AS stg_is_negociacao,
-        MAX(is_proposta) AS stg_is_proposta,
-        MAX(is_ganho) AS stg_is_ganho
-      FROM \`${config.project}.${config.dataset}.stg_crm_deals\`
-      GROUP BY deal_id
+        e.deal_id,
+        GREATEST(
+          CASE WHEN LOWER(s.title) LIKE '%contato futuro%' THEN -1
+               ELSE IFNULL(s.stage_order - 1, -1) END,
+          IF(e.dt_proposta         IS NOT NULL, 7, -1),
+          IF(e.dt_negociacao       IS NOT NULL, 6, -1),
+          IF(e.dt_visita_realizada IS NOT NULL, 4, -1),
+          IF(e.dt_visita_agendada  IS NOT NULL, 3, -1),
+          IF(e.dt_qualificado      IS NOT NULL, 2, -1)
+        ) AS depth
+      FROM ${viewName("vw_ac_deals_enriched")} e
+      LEFT JOIN ${tableRef("ac_stages")} s ON s.id = e.stage_id
     )
     SELECT
       d.deal_id,
@@ -390,7 +400,7 @@ export const VIEWS = {
       -- 1. Deal custom field (nossa extracao)
       -- 2. Contact custom field (Empreendimento setado no contato)
       -- 3. Tag FB lead ads (extracao via regex no nome do form)
-      -- 4. stg_crm_deals (Kondado) como ultimo fallback — pega casos que nao bateram acima
+      -- (sem fallback do stg_crm_deals: a fonte Kondado ficou defasada pos-reestruturacao)
       NULLIF(COALESCE(
         d.empreendimento,
         d.contact_empreendimento_cf,
@@ -401,8 +411,7 @@ export const VIEWS = {
           WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)fradique') THEN 'Fradique'
           WHEN REGEXP_CONTAINS(d.contact_tags, r'(?i)\\bjml\\b') THEN 'JML'
           ELSE NULL
-        END,
-        stg.emp_stg
+        END
       ), '') AS empreendimento,
       d.status,
       d.dt_entrada,
@@ -428,18 +437,19 @@ export const VIEWS = {
       -- valor + status do deal (pra unificar Funil e demais visoes)
       d.valor AS valor_deal,
       d.status AS deal_status,
-      -- is_* flags pelo Kondado (stage-based) — alinha com Funil tab.
-      -- COALESCE(... , 0) garante que deals fresh (ainda nao em stg) entrem como
-      -- leads brutos sem nenhuma flag positiva.
-      COALESCE(stg.stg_is_aguardando_retorno, 0) AS is_aguardando_retorno,
-      COALESCE(stg.stg_is_qualificado, 0) AS is_qualificado,
-      COALESCE(stg.stg_is_agendamento, 0) AS is_agendamento,
-      COALESCE(stg.stg_is_transferido, 0) AS is_transferido,
-      COALESCE(stg.stg_is_visita_confirmada, 0) AS is_visita_confirmada,
-      COALESCE(stg.stg_is_visita, 0) AS is_visita,
-      COALESCE(stg.stg_is_negociacao, 0) AS is_negociacao,
-      COALESCE(stg.stg_is_proposta, 0) AS is_proposta,
-      COALESCE(stg.stg_is_ganho, 0) AS is_ganho,
+      -- is_* flags calculadas da NOSSA fonte (profundidade de funil + carimbos dt_*),
+      -- ja na estrutura nova. Cumulativas (deal alcancou a etapa ou alem).
+      -- is_transferido/is_visita_confirmada: etapas extintas na reestruturacao 2026-06
+      -- (viraram Contato Futuro) — fixas em 0 pra preservar o contrato do schema.
+      IF(dd.depth >= 1, 1, 0) AS is_aguardando_retorno,
+      IF(dd.depth >= 2, 1, 0) AS is_qualificado,
+      IF(dd.depth >= 3, 1, 0) AS is_agendamento,
+      0 AS is_transferido,
+      0 AS is_visita_confirmada,
+      IF(dd.depth >= 4, 1, 0) AS is_visita,
+      IF(dd.depth >= 6, 1, 0) AS is_negociacao,
+      IF(dd.depth >= 7, 1, 0) AS is_proposta,
+      IF(d.status = 1, 1, 0) AS is_ganho,
       CASE
         -- 1. Sub-origem explicita (manualmente preenchida)
         WHEN d.sub_origem = 'Meta ADS' THEN 'meta'
@@ -500,7 +510,49 @@ export const VIEWS = {
         ELSE 'baixa'
       END AS fonte_confianca
     FROM ${viewName("vw_ac_deals_enriched")} d
-    LEFT JOIN stg_emp stg ON stg.deal_id = CAST(d.deal_id AS STRING)
+    LEFT JOIN deal_depth dd ON dd.deal_id = d.deal_id
+  `,
+
+  // Drill-down da aba Deals na NOSSA fonte (substitui leitura do stg_crm_deals da
+  // Kondado, defasado pos-reestruturacao). Junta flags/fonte (vw_lead_source) +
+  // contato/custom fields (vw_ac_deals_enriched) + nome da etapa atual (ac_stages).
+  vw_deals_detail: `
+    SELECT
+      ls.deal_id,
+      ls.contact_id,
+      e.contact_email,
+      NULLIF(TRIM(CONCAT(IFNULL(e.contact_first_name,''), ' ', IFNULL(e.contact_last_name,''))), '') AS contact_nome,
+      e.contact_phone,
+      ls.empreendimento,
+      e.linha_empreendimento,
+      e.metragem_m2,
+      e.prioridade,
+      ls.origem,
+      ls.sub_origem,
+      e.gatilho_mql,
+      e.sdr_responsavel,
+      ls.valor_deal,
+      e.valor_esperado,
+      s.title AS stage_titulo_atual,
+      e.pipeline_atual,
+      ls.deal_status,
+      e.dt_entrada AS deal_created_at,
+      e.dt_entrada,
+      ls.dt_qualificado,
+      ls.dt_visita_agendada,
+      e.dt_visita_confirmada,
+      ls.dt_visita_realizada,
+      e.dt_negociacao,
+      e.dt_proposta,
+      ls.dt_fechamento,
+      ls.is_aguardando_retorno, ls.is_qualificado, ls.is_agendamento, ls.is_transferido,
+      ls.is_visita_confirmada, ls.is_visita, ls.is_negociacao, ls.is_proposta, ls.is_ganho,
+      ls.fonte,
+      ls.campanha_deal,
+      ls.criativo_deal
+    FROM ${viewName("vw_lead_source")} ls
+    LEFT JOIN ${viewName("vw_ac_deals_enriched")} e ON e.deal_id = ls.deal_id
+    LEFT JOIN ${tableRef("ac_stages")} s ON s.id = e.stage_id
   `,
 };
 

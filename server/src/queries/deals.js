@@ -1,4 +1,4 @@
-import { tbl, config } from "../config.js";
+import { config } from "../config.js";
 import { applySubOrigensFilter } from "./performance.js";
 
 const VALID_FONTES = new Set([
@@ -58,13 +58,13 @@ export function buildDealsQuery({ from, to, emps, statuses, estagio, limit, subO
   if (estagioCondition) conds.push(`d.${estagioCondition}`);
 
   if (fonte) {
-    conds.push("ls.fonte = @fonte");
+    conds.push("d.fonte = @fonte");
     params.fonte = fonte;
     types.fonte = "STRING";
   }
 
   const sourceView =
-    "`" + config.project + "." + config.meta.dataset + ".vw_lead_source`";
+    "`" + config.project + "." + config.meta.dataset + ".vw_deals_detail`";
 
   const sql = `
     SELECT
@@ -87,11 +87,10 @@ export function buildDealsQuery({ from, to, emps, statuses, estagio, limit, subO
       FORMAT_TIMESTAMP("%Y-%m-%d", d.dt_fechamento) AS dt_fechamento,
       d.is_aguardando_retorno, d.is_qualificado, d.is_agendamento, d.is_transferido,
       d.is_visita_confirmada, d.is_visita, d.is_negociacao, d.is_proposta, d.is_ganho,
-      ls.fonte,
-      ls.campanha_deal,
-      ls.criativo_deal
-    FROM ${tbl("stg_crm_deals")} d
-    LEFT JOIN ${sourceView} ls ON CAST(ls.deal_id AS STRING) = CAST(d.deal_id AS STRING)
+      d.fonte,
+      d.campanha_deal,
+      d.criativo_deal
+    FROM ${sourceView} d
     WHERE ${conds.join(" AND ")}
     ORDER BY d.deal_created_at DESC, d.deal_id DESC
     LIMIT @limit

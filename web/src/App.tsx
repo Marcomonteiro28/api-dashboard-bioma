@@ -295,13 +295,11 @@ export function App() {
   const funnelStages = [
     { name: "Leads (Entrada)", count: cur.leads },
     { name: "Aguardando retorno", count: cur.aguardando_retorno },
-    { name: "Qualificados", count: cur.qualificados },
+    { name: "Em Atendimento", count: cur.qualificados },
     { name: "Visita Agendada", count: cur.agendamentos },
-    { name: "Transferido (Vendas)", count: cur.transferidos },
-    { name: "Visita Confirmada", count: cur.visitas_confirmadas },
     { name: "Visita Realizada", count: cur.visitas },
-    { name: "Negociação", count: cur.negociacoes },
-    { name: "Proposta", count: cur.propostas },
+    { name: "Em Negociação", count: cur.negociacoes },
+    { name: "Em Contrato", count: cur.propostas },
   ];
 
   const onOpenLead = (dealId: string) => setLeadModalId(dealId);

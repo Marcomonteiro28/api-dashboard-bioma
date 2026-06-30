@@ -499,7 +499,7 @@
       <div class="hero-content">
         <p class="hero-eyebrow">Bioma · Casa Vertical</p>
         <h1>Performance do Funil</h1>
-        <p class="subtitle">ActiveCampaign · pipeline pré-vendas + vendas · dados ao vivo via API</p>
+        <p class="subtitle">ActiveCampaign · esteira Bioma Vendas + Bozza Nova · dados ao vivo via API</p>
       </div>
     </div>
   </header>
@@ -1107,9 +1107,9 @@ function renderDealsTable(deals, meta) {
     if (d.deal_status == 2) return '<span class="badge badge-perdido">Perdido</span>';
     return '<span class="badge badge-aberto">Aberto</span>';
   };
-  const pipelineBadge = (p) => p === "Vendas"
-    ? '<span class="badge badge-vendas">Vendas</span>'
-    : '<span class="badge badge-pre">Pré-vendas</span>';
+  const pipelineBadge = (p) => p === "Bozza Nova"
+    ? '<span class="badge badge-vendas">Bozza Nova</span>'
+    : '<span class="badge badge-pre">Bioma Vendas</span>';
   const prioridadeBadge = (p) => {
     if (!p) return "—";
     const map = { "Quente": "#c44536", "Morno": "#d9822f", "Frio": "#5b6e5b" };
@@ -1206,13 +1206,11 @@ function render() {
   const funilStages = [
     { name: "Leads (Entrada)",     count: cur.leads,               estagio: "leads" },
     { name: "Aguardando retorno",  count: cur.aguardando_retorno,  estagio: "aguardando_retorno" },
-    { name: "Qualificados",        count: cur.qualificados,        estagio: "qualificados" },
+    { name: "Em Atendimento",      count: cur.qualificados,        estagio: "qualificados" },
     { name: "Visita Agendada",     count: cur.agendamentos,        estagio: "agendamentos" },
-    { name: "Transferido (Vendas)",count: cur.transferidos,        estagio: "transferidos" },
-    { name: "Visita Confirmada",   count: cur.visitas_confirmadas, estagio: "visitas_confirmadas" },
     { name: "Visita Realizada",    count: cur.visitas,             estagio: "visitas" },
-    { name: "Negociação",          count: cur.negociacoes,         estagio: "negociacoes" },
-    { name: "Proposta",            count: cur.propostas,           estagio: "propostas" }
+    { name: "Em Negociação",       count: cur.negociacoes,         estagio: "negociacoes" },
+    { name: "Em Contrato",         count: cur.propostas,           estagio: "propostas" }
   ];
   const maxLeads = funilStages[0].count || 1;
 
@@ -1221,7 +1219,7 @@ function render() {
 
   const kpis = [
     kpiCardClickable("Leads", fmtNum(cur.leads), delta(cur.leads, prev.leads), "leads"),
-    kpiCardClickable("Qualificados", fmtNum(cur.qualificados), delta(cur.qualificados, prev.qualificados), "qualificados"),
+    kpiCardClickable("Em Atendimento", fmtNum(cur.qualificados), delta(cur.qualificados, prev.qualificados), "qualificados"),
     kpiCardClickable("Agendamentos", fmtNum(cur.agendamentos), delta(cur.agendamentos, prev.agendamentos), "agendamentos"),
     kpiCardClickable("Visitas realizadas", fmtNum(cur.visitas), delta(cur.visitas, prev.visitas), "visitas"),
     kpiCardClickable("Negociações", fmtNum(cur.negociacoes), delta(cur.negociacoes, prev.negociacoes), "negociacoes"),
@@ -1252,10 +1250,10 @@ function render() {
     ? '<p class="card-subtitle">Sem dados de status disponíveis.</p>'
     : statusFilt.map(s => {
         return '<div class="status-row">' +
-          '<span class="status-dot ' + s.funil + '"></span>' +
+          '<span class="status-dot ' + (s.funil && s.funil.indexOf('bozza') >= 0 ? 'vendas' : 'pre') + '"></span>' +
           '<span class="status-name">' + s.status + '</span>' +
           '<div class="status-bar-bg">' +
-            '<div class="status-bar ' + s.funil + '" style="width:' + (Number(s.qtd) / statusMax * 100) + '%"></div>' +
+            '<div class="status-bar ' + (s.funil && s.funil.indexOf('bozza') >= 0 ? 'vendas' : 'pre') + '" style="width:' + (Number(s.qtd) / statusMax * 100) + '%"></div>' +
           '</div>' +
           '<span class="status-count">' + fmtNum(Number(s.qtd)) + '</span>' +
         '</div>';
